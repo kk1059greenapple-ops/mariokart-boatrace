@@ -1681,7 +1681,7 @@ function initApp() {
 
         // === Voter: Cart Logic ===
         const btnAddCart = document.getElementById('btn-add-to-cart');
-        const betAmountInput = document.getElementById('bet-amount');
+        const betAmountInput = document.getElementById('selected-bet-amount');
 
         if (btnAddCart) {
             btnAddCart.addEventListener('click', () => {
