@@ -31,6 +31,12 @@
     <script>
     // グローバルエラーキャッチャー（画面上部に赤帯で表示）
     window.onerror = function(message, source, lineno, colno, error) {
+        // クロスオリジン（Safari拡張機能など）のエラーは詳細が取れないため無視する
+        if (message.toLowerCase().indexOf('script error') > -1 && (!source || source === '')) {
+            console.warn("Ignored cross-origin Script Error.");
+            return false;
+        }
+
         const msg = `❌ JSエラー: ${message} (ファイル: ${source}, 行: ${lineno}:${colno})`;
         console.error("GLOBAL ERROR CAPTURED:", msg, error);
         let errDiv = document.getElementById('global-js-error-banner');
@@ -411,18 +417,8 @@
                                 </span>
                             </h2>
                             
-                            <div class="mark-sheet-wrapper">
-                                <div class="mark-sheet-table">
-                                    <div class="mark-sheet-row header">
-                                        <div class="mark-sheet-col col-runner" style="justify-content: flex-start; padding-left: 1.5rem;">枠番 / 選手</div>
-                                        <div class="mark-sheet-col col-place place-1">1着</div>
-                                        <div class="mark-sheet-col col-place place-2">2着</div>
-                                        <div class="mark-sheet-col col-place place-3">3着</div>
-                                    </div>
-                                    <div id="mark-sheet-rows-container">
-                                        <!-- Will be dynamically populated with active race players -->
-                                    </div>
-                                </div>
+                            <div class="mark-sheet-wrapper" id="mark-sheet-table-container">
+                                <!-- JSで動的にマークシートが描画されます -->
                             </div>
                             
                             <div class="mark-sheet-controls-grid mt-4">
