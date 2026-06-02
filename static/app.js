@@ -1946,6 +1946,25 @@ function initApp() {
     }
 }
 
+// === グローバル関数：キャリーオーバープールのリセット ===
+function resetCarryoverPool() {
+    if (!confirm('キャリーオーバーのプール金額を 0 にリセットしますか？\nこの操作は元に戻せません。')) return;
+    const db = window.db;
+    if (!db) {
+        alert('データベースに接続されていません');
+        return;
+    }
+    db.ref('settings/carryover_pool').set(0, (err) => {
+        const toastEl = document.getElementById('toast');
+        if (toastEl) {
+            toastEl.textContent = err ? 'リセットに失敗しました' : 'キャリーオーバーをリセットしました';
+            toastEl.style.background = err ? 'rgba(220,53,69,0.95)' : 'rgba(25,135,84,0.95)';
+            toastEl.classList.add('show');
+            setTimeout(() => toastEl.classList.remove('show'), 3000);
+        }
+    });
+}
+
 // ページのDOMロード完了時に初期化を実行
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
