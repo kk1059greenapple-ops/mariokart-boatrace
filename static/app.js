@@ -672,9 +672,11 @@ function initApp() {
                     adminRaceLockStatus.textContent = isRaceLocked ? "締め切り済み" : "受付中";
                     adminRaceLockStatus.className = isRaceLocked ? "status-badge complete" : "status-badge waiting";
                     adminQuickLockBtn.textContent = isRaceLocked ? "受付再開" : "投票締め切り";
+                    if (btnLockRace) btnLockRace.innerHTML = isRaceLocked ? "🔓 投票受付を再開する" : "🔒 投票を締め切る";
                     
                     renderRecordPlayersGrid();
                     renderLiveRankingDisplay();
+                    renderCommissionLog(data);
                 } else {
                     noRaceMessagePublic.style.display = 'none';
                     activeVotingContent.style.display = 'block';
@@ -755,7 +757,7 @@ function initApp() {
                         player_id: pid,
                         name: p ? p.name : "不明",
                         boat_pattern: [boatMap[pid]],
-                        odds: o
+                        odds: Math.max(1.0, o)
                     });
                 });
                 oddsResult['win'].sort((a,b) => a.boat_pattern[0] - b.boat_pattern[0]);
@@ -774,13 +776,13 @@ function initApp() {
                         if (addedCarryover > 0) {
                             o = ((100.0 * RETURN_RATE) + addedCarryover) / 100.0;
                         } else {
-                            o = 1.8;
+                            o = 1.0;
                         }
                     }
                     oddsResult['two_teams'].push({
                         pattern: [team],
                         team_name: team === 1 ? '赤チーム' : '青チーム',
-                        odds: o
+                        odds: Math.max(1.0, o)
                     });
                 });
 
@@ -801,7 +803,7 @@ function initApp() {
                         pattern: pair,
                         pattern_names: pair.map(id => { const p = players.find(x=>x.id===id); return p ? p.name : ""; }),
                         boat_pattern: pair.map(id => boatMap[id]),
-                        odds: o
+                        odds: Math.max(1.0, o)
                     });
                 });
                 oddsResult['exacta'].sort((a,b) => (a.boat_pattern[0] * 10 + a.boat_pattern[1]) - (b.boat_pattern[0] * 10 + b.boat_pattern[1]));
@@ -823,7 +825,7 @@ function initApp() {
                         pattern: triple,
                         pattern_names: triple.map(id => { const p = players.find(x=>x.id===id); return p ? p.name : ""; }),
                         boat_pattern: triple.map(id => boatMap[id]),
-                        odds: o
+                        odds: Math.max(1.0, o)
                     });
                 });
                 oddsResult['trifecta'].sort((a,b) => (a.boat_pattern[0] * 100 + a.boat_pattern[1] * 10 + a.boat_pattern[2]) - (b.boat_pattern[0] * 100 + b.boat_pattern[1] * 10 + b.boat_pattern[2]));
@@ -833,13 +835,21 @@ function initApp() {
         }
 
         // === Admin: Result Entry & Submit (Firebase) ===
-        if (adminQuickLockBtn) {
-            adminQuickLockBtn.addEventListener('click', () => {
-                const raceNum = parseInt(adminRaceNumberSelect.value);
-                db.ref(`races/${raceNum}/locked`).set(!isRaceLocked, () => {
-                    showToast(isRaceLocked ? "投票の受付を再開しました" : "投票受付を締め切りました");
+        function toggleLockRace() {
+            const raceNum = parseInt(adminRaceNumberSelect.value);
+            db.ref(`races/${raceNum}/locked`).once('value', snapshot => {
+                const currentStatus = !!snapshot.val();
+                db.ref(`races/${raceNum}/locked`).set(!currentStatus, () => {
+                    showToast(currentStatus ? "投票の受付を再開しました" : "投票受付を締め切りました");
                 });
             });
+        }
+
+        if (adminQuickLockBtn) {
+            adminQuickLockBtn.addEventListener('click', toggleLockRace);
+        }
+        if (btnLockRace) {
+            btnLockRace.addEventListener('click', toggleLockRace);
         }
 
         function renderRecordPlayersGrid() {
@@ -1101,53 +1111,76 @@ function initApp() {
         }
 
         // === Admin: Commission Log Display ===
-        function loadCommissionLog() {
+        function renderCommissionLog(data) {
             if (!commissionLogTableBody) return;
-            db.ref('commission_log').once('value', snapshot => {
-                const data = snapshot.val() || {};
-                const logs = Object.keys(data).map(k => data[k]).sort((a,b) => a.race_number - b.race_number);
+            const commData = data.commission_log || {};
+            const logs = Object.keys(commData).map(k => commData[k]).sort((a,b) => a.race_number - b.race_number);
 
-                let sumTotalBets = 0;
-                let sumAppliedCO = 0;
-                let sumBetsComm = 0;
-                let sumCOComm = 0;
-                let sumTotalComm = 0;
-
-                commissionLogTableBody.innerHTML = logs.map(l => {
-                    sumTotalBets += l.total_bets || 0;
-                    sumAppliedCO += l.carryover_applied || 0;
-                    sumBetsComm += l.bets_commission || 0;
-                    sumCOComm += l.carryover_commission || 0;
-                    sumTotalComm += l.total_commission || 0;
-
-                    return `<tr>
-                        <td>${l.race_number}R</td>
-                        <td>${(l.total_bets || 0).toLocaleString()} G</td>
-                        <td>${(l.carryover_applied || 0).toLocaleString()} G</td>
-                        <td>${(l.bets_commission || 0).toLocaleString()} G</td>
-                        <td>${(l.carryover_commission || 0).toLocaleString()} G</td>
-                        <td class="neon-text">${(l.total_commission || 0).toLocaleString()} G</td>
-                        <td style="font-size:0.8rem; color:var(--text-muted);">${l.date || ''}</td>
-                    </tr>`;
-                }).join('');
-
-                if (commissionLogTableFoot) {
-                    commissionLogTableFoot.innerHTML = `<tr style="font-weight: bold; background: rgba(255,255,255,0.05);">
-                        <td>合計</td>
-                        <td>${sumTotalBets.toLocaleString()} G</td>
-                        <td>${sumAppliedCO.toLocaleString()} G</td>
-                        <td>${sumBetsComm.toLocaleString()} G</td>
-                        <td>${sumCOComm.toLocaleString()} G</td>
-                        <td class="neon-text" style="font-size: 1.1rem; text-shadow:0 0 10px rgba(0,240,255,0.4);">${sumTotalComm.toLocaleString()} G</td>
-                        <td>-</td>
-                    </tr>`;
+            const activeRaceNum = parseInt(adminRaceNumberSelect.value);
+            const dbVotes = data.votes || {};
+            let liveTotalBets = 0;
+            Object.keys(dbVotes).forEach(vid => {
+                const v = dbVotes[vid];
+                if (v.race_number === activeRaceNum && !v.is_resolved) {
+                    liveTotalBets += parseFloat(v.amount);
                 }
             });
+            const liveCarryover = parseFloat(data.settings?.carryover_pool) || 0;
+            
+            if (liveTotalBets > 0) {
+                logs.push({
+                    race_number: `${activeRaceNum} (予想)`,
+                    total_bets: liveTotalBets,
+                    carryover_applied: liveCarryover,
+                    bets_commission: liveTotalBets * 0.1,
+                    carryover_commission: liveCarryover * 0.1,
+                    total_commission: (liveTotalBets * 0.1) + (liveCarryover * 0.1),
+                    date: '未確定（リアルタイム）'
+                });
+            }
+
+            let sumTotalBets = 0;
+            let sumAppliedCO = 0;
+            let sumBetsComm = 0;
+            let sumCOComm = 0;
+            let sumTotalComm = 0;
+
+            commissionLogTableBody.innerHTML = logs.map(l => {
+                sumTotalBets += l.total_bets || 0;
+                sumAppliedCO += l.carryover_applied || 0;
+                sumBetsComm += l.bets_commission || 0;
+                sumCOComm += l.carryover_commission || 0;
+                sumTotalComm += l.total_commission || 0;
+
+                return `<tr>
+                    <td>${l.race_number}R</td>
+                    <td>${(l.total_bets || 0).toLocaleString()} G</td>
+                    <td>${(l.carryover_applied || 0).toLocaleString()} G</td>
+                    <td>${(l.bets_commission || 0).toLocaleString()} G</td>
+                    <td>${(l.carryover_commission || 0).toLocaleString()} G</td>
+                    <td class="neon-text">${(l.total_commission || 0).toLocaleString()} G</td>
+                    <td style="font-size:0.8rem; color:var(--text-muted);">${l.date || ''}</td>
+                </tr>`;
+            }).join('');
+
+            if (commissionLogTableFoot) {
+                commissionLogTableFoot.innerHTML = `<tr style="font-weight: bold; background: rgba(255,255,255,0.05);">
+                    <td>合計</td>
+                    <td>${sumTotalBets.toLocaleString()} G</td>
+                    <td>${sumAppliedCO.toLocaleString()} G</td>
+                    <td>${sumBetsComm.toLocaleString()} G</td>
+                    <td>${sumCOComm.toLocaleString()} G</td>
+                    <td class="neon-text" style="font-size: 1.1rem; text-shadow:0 0 10px rgba(0,240,255,0.4);">${sumTotalComm.toLocaleString()} G</td>
+                    <td>-</td>
+                </tr>`;
+            }
         }
 
         if (btnRefreshCommissionLog) {
             btnRefreshCommissionLog.addEventListener('click', () => {
-                loadCommissionLog();
+                db.ref('/').once('value', snapshot => {
+                    renderCommissionLog(snapshot.val() || {});
+                });
                 showToast('ログを更新しました');
             });
         }
@@ -1782,6 +1815,7 @@ function initApp() {
                         oddsVal = ((100.0 * RETURN_RATE) + addedCarryover) / 100.0;
                     }
                 }
+                oddsVal = Math.max(1.0, oddsVal);
                 const roundedOdds = Math.round(oddsVal * 10) / 10;
                 const expectedPayout = Math.floor(item.amount * roundedOdds);
 
