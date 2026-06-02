@@ -701,6 +701,7 @@ function initApp() {
                     }
                     renderCartItems();
                     updateOddsValues();
+                    renderOddsTable(calculated.odds, allowedBetType);
                 }
                 } catch (err) {
                     window.onerror(err.message, 'app.js (fetchActiveRace)', err.lineNumber || 0, 0, err);

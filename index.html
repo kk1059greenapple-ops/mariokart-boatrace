@@ -182,66 +182,6 @@
         });
     }
 
-    // 管理者ページ 過去のレース結果・払い戻し一覧の取得
-    async function loadAdminRaceResults() {
-        const selectEl = document.getElementById('admin-results-race-select');
-        if (!selectEl) return;
-        const raceNum = selectEl.value;
-        const contentEl = document.getElementById('admin-results-content');
-        const emptyEl = document.getElementById('admin-results-empty');
-        if (!contentEl || !emptyEl) return;
-        
-        try {
-            const res = await fetch(`/api/races/results?race_number=${raceNum}`);
-            const data = await res.json();
-            if (data.completed) {
-                contentEl.style.display = 'block';
-                emptyEl.style.display = 'none';
-                
-                // Set bet type label
-                const betTypesMap = { 'win': '単勝', 'two_teams': '2チーム', 'exacta': '2連単', 'trifecta': '3連単' };
-                document.getElementById('admin-results-bet-type').textContent = betTypesMap[data.bet_type] || data.bet_type;
-                
-                // Render ranking list
-                const rankingList = document.getElementById('admin-results-ranking-list');
-                rankingList.innerHTML = data.results.map(r => `
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 1rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                        <span style="font-weight: bold; color: var(--primary);">${r.position}着</span>
-                        <span>${r.player_name}</span>
-                        <span style="font-size: 0.85rem; color: var(--text-muted);">(+${r.points}点)</span>
-                    </div>
-                `).join('');
-                
-                // Render winning voters tbody
-                const winnersTbody = document.getElementById('admin-results-winners-tbody');
-                if (data.winning_voters.length > 0) {
-                    winnersTbody.innerHTML = data.winning_voters.map(w => `
-                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                            <td style="padding: 0.75rem 0.5rem; font-weight: bold;">${w.voter_name}</td>
-                            <td style="padding: 0.75rem 0.5rem; color: var(--primary); font-family: monospace;">${w.display_pattern}</td>
-                            <td style="padding: 0.75rem 0.5rem;">${w.amount} G</td>
-                            <td style="padding: 0.75rem 0.5rem; color: var(--warning); font-weight: bold;">${w.odds < 1.0 ? '-' : w.odds.toFixed(1) + '倍'}</td>
-                            <td style="padding: 0.75rem 0.5rem; color: var(--success); font-weight: bold;">${w.payout.toLocaleString()} G</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    winnersTbody.innerHTML = `
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
-                                的中した投票者はいませんでした
-                            </td>
-                        </tr>
-                    `;
-                }
-            } else {
-                contentEl.style.display = 'none';
-                emptyEl.style.display = 'block';
-            }
-        } catch(e) {
-            showToastDirect('過去のレース結果のロードに失敗しました', true);
-        }
-    }
-
     function showToastDirect(msg, isError) {
         const t = document.getElementById('toast');
         if (!t) return;
@@ -803,24 +743,9 @@
                         </div>
                     </div>
 
-                    <!-- Completed Race Results & Payouts Card for Admins -->
-                    <div class="glass-card mt-4" id="admin-race-results-card">
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
-                            <h3 style="margin: 0;">🏆 5. レース確定結果・的中払い戻し確認</h3>
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <label style="font-weight: bold; color: var(--primary);">レースを選択:</label>
-                                <select id="admin-results-race-select" style="background:rgba(0,0,0,0.6); border:1px solid var(--glass-border); border-radius:12px; padding:0.4rem 1rem; color:#fff; font-size:1.1rem; font-weight:bold; outline:none; cursor:pointer;" onchange="loadAdminRaceResults()">
-                                    <option value="1">1R</option>
-                                    <option value="2">2R</option>
-                                    <option value="3">3R</option>
-                                    <option value="4">4R</option>
-                                    <option value="5">5R</option>
-                                    <option value="6">6R</option>
-                                    <option value="7">7R</option>
-                                    <option value="8">8R</option>
-                                    <option value="9">9R</option>
                                     <option value="10">10R</option>
                                 </select>
+                                <button id="btn-delete-selected-result" class="glass-btn danger" style="padding: 0.3rem 0.8rem; font-size: 0.85rem; margin-left: 0.5rem; display: none;">このレースを削除</button>
                             </div>
                         </div>
                         <p class="text-muted mt-2" style="font-size: 0.9rem;">
@@ -941,6 +866,6 @@
     </div>
 
     <div id="toast" class="toast">Action completed!</div>
-    <script src="static/app.js?v=12"></script>
+    <script src="static/app.js?v=13"></script>
 </body>
 </html>
