@@ -527,7 +527,7 @@ function initApp() {
 
                         document.querySelectorAll('.btn-delete-race').forEach(btn => {
                             btn.addEventListener('click', (e) => {
-                                const num = e.target.getAttribute('data-num');
+                                const num = e.currentTarget.getAttribute('data-num');
                                 if (confirm(`${num}Rを削除してもよろしいですか？（このレースの投票も消去されます）`)) {
                                     db.ref(`races/${num}`).remove(() => {
                                         // 投票も削除
@@ -1429,8 +1429,11 @@ function initApp() {
 
                     return `<div class="glass-card" style="padding:1.25rem; margin-bottom:1rem; border-color:rgba(255,255,255,0.05);">
                         <div class="flex-between" style="border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.5rem; margin-bottom:0.5rem;">
-                            <strong style="font-size:1.15rem; color:var(--primary);">${r.race_number}R 結果確定</strong>
-                            <span style="font-size:0.85rem; color:var(--text-muted);">形式: ${betTypeNames[r.allowed_bet_type]}</span>
+                            <div>
+                                <strong style="font-size:1.15rem; color:var(--primary);">${r.race_number}R 結果確定</strong>
+                                <span style="font-size:0.85rem; color:var(--text-muted); margin-left:10px;">形式: ${betTypeNames[r.allowed_bet_type]}</span>
+                            </div>
+                            <button class="glass-btn danger btn-delete-completed-race" data-num="${r.race_number}" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">削除</button>
                         </div>
                         <div style="margin-bottom:0.75rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
                             ${rankHtml}
@@ -1441,6 +1444,36 @@ function initApp() {
                         </div>
                     </div>`;
                 }).join('');
+
+                document.querySelectorAll('.btn-delete-completed-race').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const num = e.currentTarget.getAttribute('data-num');
+                        if (confirm(`確定済みの ${num}R を履歴から削除してもよろしいですか？（※投票者の所持金や戦績は元に戻りません）`)) {
+                            db.ref(`races/${num}`).remove();
+                            db.ref('commission_log').once('value', cSnap => {
+                                const cData = cSnap.val() || {};
+                                Object.keys(cData).forEach(cid => {
+                                    if (cData[cid].race_number === parseInt(num)) {
+                                        db.ref(`commission_log/${cid}`).remove();
+                                    }
+                                });
+                                db.ref('votes').once('value', vSnap => {
+                                    const vData = vSnap.val() || {};
+                                    Object.keys(vData).forEach(vid => {
+                                        if (vData[vid].race_number === parseInt(num)) {
+                                            db.ref(`votes/${vid}`).remove();
+                                        }
+                                    });
+                                    showToast(`${num}Rの履歴を削除しました`);
+                                    loadCompletedRacesHistory();
+                                    db.ref('/').once('value', snapshot => {
+                                        renderCommissionLog(snapshot.val() || {});
+                                    });
+                                });
+                            });
+                        }
+                    });
+                });
             });
         }
 
