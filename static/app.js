@@ -674,6 +674,18 @@ function initApp() {
                     adminQuickLockBtn.textContent = isRaceLocked ? "受付再開" : "投票締め切り";
                     if (btnLockRace) btnLockRace.innerHTML = isRaceLocked ? "🔓 投票受付を再開する" : "🔒 投票を締め切る";
                     
+                    if (isRaceLocked) {
+                        if (recordPlayersGrid) recordPlayersGrid.style.display = 'grid';
+                        const liveResultsBar = document.querySelector('.live-results-bar');
+                        if (liveResultsBar) liveResultsBar.style.display = 'block';
+                        if (btnSubmitRecord) btnSubmitRecord.disabled = false;
+                    } else {
+                        if (recordPlayersGrid) recordPlayersGrid.style.display = 'none';
+                        const liveResultsBar = document.querySelector('.live-results-bar');
+                        if (liveResultsBar) liveResultsBar.style.display = 'none';
+                        if (btnSubmitRecord) btnSubmitRecord.disabled = true;
+                    }
+
                     renderRecordPlayersGrid();
                     renderLiveRankingDisplay();
                     renderCommissionLog(data);
