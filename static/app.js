@@ -1662,6 +1662,45 @@ function initApp() {
             return result;
         }
 
+        // 全買い目のオッズ表を描画
+        function renderOddsTable(oddsData, betType) {
+            const container = document.getElementById('voting-odds-display');
+            if (!container) return;
+            
+            if (isOddsHidden) {
+                container.innerHTML = `<div class="text-center text-muted" style="padding: 1.5rem;">オッズは非表示に設定されています</div>`;
+                return;
+            }
+
+            const list = oddsData[betType] || [];
+            if (list.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 0.5rem; max-height: 250px; overflow-y: auto; padding-right: 5px;">`;
+            
+            list.forEach(item => {
+                let displayPattern = "";
+                if (betType === 'two_teams') {
+                    displayPattern = (item.boat_pattern[0] === 1) ? "赤" : "青";
+                } else {
+                    displayPattern = item.boat_pattern.join('-');
+                }
+                
+                const oddsStr = item.odds < 1.0 ? '-' : item.odds.toFixed(1) + 'x';
+                
+                html += `<div style="background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 6px; padding: 0.5rem; text-align: center;">
+                    <div class="neon-text" style="font-weight: bold; font-size: 0.95rem;">${displayPattern}</div>
+                    <div style="color: var(--warning); font-weight: bold; font-size: 0.85rem; margin-top: 2px;">${oddsStr}</div>
+                </div>`;
+            });
+            html += `</div>`;
+            
+            container.innerHTML = html;
+        }
+
+
         // オッズ表示のリアルタイム更新
         function updateOddsValues() {
             const valDisplay = document.getElementById('selected-bet-odds-val');
