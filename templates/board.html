@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全員の投票状況ボード | Ultimate Boat Race Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: radial-gradient(circle at top, #0f172a, #020617);
+            --primary: #00f0ff;
+            --primary-glow: rgba(0, 240, 255, 0.4);
+            --success: #00ff88;
+            --success-glow: rgba(0, 255, 136, 0.4);
+            --warning: #ffaa00;
+            --danger: #ff4d4d;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.07);
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px var(--primary-glow);
+            letter-spacing: -0.5px;
+        }
+
+        .board-badge {
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 0.5rem 1.25rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
+        }
+
+        main {
+            width: 100%;
+            max-width: 1400px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .status-banner {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .status-info {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .status-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255,255,255,0.4);
+        }
+
+        .status-dot.active {
+            background: var(--success);
+            box-shadow: 0 0 20px var(--success-glow);
+            animation: blink 1.5s infinite;
+        }
+
+        .status-dot.hidden {
+            background: var(--warning);
+            box-shadow: 0 0 20px rgba(255,170,0,0.5);
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .status-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(430px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .voter-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 1.5rem 1.75rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .voter-card.voted {
+            border-color: rgba(0, 240, 255, 0.25);
+            background: rgba(0, 240, 255, 0.01);
+        }
+
+        .voter-card.revealed {
+            border-color: rgba(0, 255, 136, 0.25);
+            background: rgba(0, 255, 136, 0.01);
+        }
+
+        .voter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding-bottom: 1rem;
+        }
+
+        .voter-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .voter-status-badge {
+            padding: 0.4rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .voter-status-badge.complete {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+            text-shadow: 0 0 10px var(--success-glow);
+        }
+
+        .voter-status-badge.waiting {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--text-muted);
+            color: var(--text-muted);
+        }
+
+        .bets-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            margin-top: 0.5rem;
+        }
+
+        .bets-table th {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .bets-table td {
+            padding: 0.75rem 0;
+            font-size: 0.95rem;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .bets-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .bet-pattern {
+            font-family: 'Outfit', monospace;
+            font-weight: 700;
+            color: var(--primary);
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .bet-pattern.masked {
+            color: var(--warning);
+            font-style: italic;
+            text-shadow: none;
+        }
+
+        .bet-amount {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .bet-odds {
+            font-weight: bold;
+            color: var(--warning);
+        }
+
+        .no-bets-placeholder {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            border: 1px dashed rgba(255,255,255,0.05);
+            border-radius: 12px;
+            background: rgba(0,0,0,0.1);
+        }
+
+        @keyframes celebrate-glow {
+            0% { box-shadow: 0 0 30px rgba(0, 255, 136, 0.2); border-color: rgba(0, 255, 136, 0.4); }
+            100% { box-shadow: 0 0 50px rgba(0, 255, 136, 0.4); border-color: rgba(0, 255, 136, 0.8); }
+        }
+
+        @keyframes item-pop {
+            0% { opacity: 0; transform: scale(0.9) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            h1 { font-size: 1.8rem; }
+            .grid-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>📊 全員投票リアルタイム掲示板</h1>
+            <p style="color: var(--text-muted); margin-top: 0.25rem; font-size: 1rem;">
+                Ultimate Boat Race Simulator - External Display Board
+            </p>
+        </div>
+        <div class="board-badge" id="active-races-badge">
+            レース準備中
+        </div>
+    </header>
+
+    <main>
+        <div class="status-banner">
+            <div class="status-info">
+                <div class="status-dot" id="board-status-dot"></div>
+                <div class="status-text" id="board-status-text">
+                    データ読み込み中...
+                </div>
+            </div>
+            <div style="font-size: 0.9rem; color: var(--text-muted);">
+                ※ この画面は 2 秒ごとに自動更新されます。
+            </div>
+        </div>
+
+        <div class="grid-container" id="board-grid">
+            <!-- Dynamic voter cards here -->
+        </div>
+    </main>
+
+    <script>
+        const activeRacesBadge = document.getElementById('active-races-badge');
+        const boardStatusDot = document.getElementById('board-status-dot');
+        const boardStatusText = document.getElementById('board-status-text');
+        const boardGrid = document.getElementById('board-grid');
+
+        const betTypeNames = {
+            'win': '単勝',
+            'exacta': '2連単',
+            'trifecta': '3連単',
+            'two_teams': '2チーム'
+        };
+
+        async function fetchBoardData() {
+            try {
+                const res = await fetch('/api/board/bets');
+                if (!res.ok) throw new Error('Network error');
+                const data = await res.json();
+                
+                // Update active races badge
+                if (data.active_races && data.active_races.length > 0) {
+                    activeRacesBadge.textContent = `稼働中: ${data.active_races.sort((a,b)=>a-b).join('R, ')}R`;
+                    activeRacesBadge.style.display = 'block';
+                } else {
+                    activeRacesBadge.textContent = '現在作成されたレースはありません';
+                }
+
+                // Update status banner
+                if (data.reveal) {
+                    boardStatusDot.className = 'status-dot active';
+                    boardStatusText.textContent = '👁️ 全員の投票内容が公開されています！';
+                    boardStatusText.style.color = 'var(--success)';
+                } else {
+                    boardStatusDot.className = 'status-dot hidden';
+                    boardStatusText.textContent = '🙈 投票受付中（買い目・金額は非公開です）';
+                    boardStatusText.style.color = 'var(--warning)';
+                }
+
+                // Render grid
+                if (!data.board_data || data.board_data.length === 0) {
+                    boardGrid.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: var(--text-muted); font-size: 1.2rem; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px;">
+                            登録されている投票者がいません。
+                        </div>
+                    `;
+                    return;
+                }
+
+                boardGrid.innerHTML = data.board_data.map(voter => {
+                    let statusBadgeHtml = '';
+                    let cardClass = 'voter-card';
+                    
+                    if (voter.has_voted) {
+                        statusBadgeHtml = `<div class="voter-status-badge complete">🟢 投票完了</div>`;
+                        cardClass += data.reveal ? ' revealed' : ' voted';
+                    } else {
+                        statusBadgeHtml = `<div class="voter-status-badge waiting">⚪️ 投票待ち</div>`;
+                    }
+
+                    let contentHtml = '';
+                    if (voter.has_voted && voter.votes && voter.votes.length > 0) {
+                        const rowsHtml = voter.votes.map(vote => {
+                            const betTypeName = betTypeNames[vote.bet_type] || '未指定';
+                            const patternClass = data.reveal ? 'bet-pattern' : 'bet-pattern masked';
+                            const formattedAmount = data.reveal ? `${vote.amount.toLocaleString()} G` : '***';
+                            const formattedOdds = data.reveal ? `${vote.odds.toFixed(1)}x` : '-';
+                            
+                            return `
+                                <tr>
+                                    <td style="font-weight: bold; color: #fff;">${vote.race_number}R</td>
+                                    <td style="color: var(--text-muted); font-size: 0.85rem;">${betTypeName}</td>
+                                    <td><span class="${patternClass}">${vote.display_pattern}</span></td>
+                                    <td class="bet-amount">${formattedAmount}</td>
+                                    <td class="bet-odds">${formattedOdds}</td>
+                                </tr>
+                            `;
+                        }).join('');
+
+                        contentHtml = `
+                            <table class="bets-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 15%">R</th>
+                                        <th style="width: 20%">賭け式</th>
+                                        <th style="width: 35%">買い目</th>
+                                        <th style="width: 15%">金額</th>
+                                        <th style="width: 15%">オッズ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        `;
+                    } else {
+                        contentHtml = `
+                            <div class="no-bets-placeholder">
+                                まだ賭けに参加していません
+                            </div>
+                        `;
+                    }
+
+                    return `
+                        <div class="${cardClass}">
+                            <div class="voter-header">
+                                <div class="voter-name">${voter.voter_name}</div>
+                                ${statusBadgeHtml}
+                            </div>
+                            ${contentHtml}
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (e) {
+                console.error("Board fetch error:", e);
+                boardStatusDot.className = 'status-dot';
+                boardStatusText.textContent = '⚠️ サーバーとの接続が切断されました。再接続中...';
+                boardStatusText.style.color = 'var(--danger)';
+            }
+        }
+
+        // Auto reload every 2 seconds
+        setInterval(fetchBoardData, 2000);
+        // Initial fetch
+        fetchBoardData();
+    </script>
+</body>
+</html>

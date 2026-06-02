@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarioKart BoatRace Radar</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&family=Outfit:wght@700;900&display=swap" rel="stylesheet">
+    <script>
+    // グローバルエラーキャッチャー（画面上部に赤帯で表示）
+    window.onerror = function(message, source, lineno, colno, error) {
+        const msg = `❌ JSエラー: ${message} (ファイル: ${source}, 行: ${lineno}:${colno})`;
+        console.error("GLOBAL ERROR CAPTURED:", msg, error);
+        let errDiv = document.getElementById('global-js-error-banner');
+        if (!errDiv) {
+            errDiv = document.createElement('div');
+            errDiv.id = 'global-js-error-banner';
+            errDiv.style = 'position:fixed;top:0;left:0;right:0;background:#ff0055;color:#fff;padding:1rem;z-index:999999;font-size:1.1rem;word-break:break-all;font-weight:bold;box-shadow:0 5px 15px rgba(0,0,0,0.5);';
+            document.documentElement.appendChild(errDiv);
+        }
+        errDiv.innerHTML = msg + (error && error.stack ? `<br><pre style="margin-top:0.5rem;font-size:0.85rem;white-space:pre-wrap;">${error.stack}</pre>` : '');
+        return false;
+    };
+
+    // ナビゲーション切り替え（JSファイルに依存しない確実な実装）
+    function switchView(targetId, clickedBtn) {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        clickedBtn.classList.add('active');
+        document.querySelectorAll('.view').forEach(v => {
+            if (v.id === targetId) {
+                v.classList.add('active');
+            } else {
+                v.classList.remove('active');
+            }
+        });
+    }
+
+    // 管理者ログイン（JSファイルに依存しない確実な実装）
+    async function doAdminLogin() {
+        const pw = document.getElementById('admin-password').value;
+        if (!pw) return;
+        try {
+            const res = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pw })
+            });
+            if (res.ok) {
+                document.getElementById('admin-auth-container').style.display = 'none';
+                document.getElementById('admin-dashboard').style.display = 'block';
+                document.getElementById('admin-password').value = '';
+                // app.js の isAdminAuthenticated フラグも更新
+                if (typeof window._setAdminAuth === 'function') window._setAdminAuth(true);
+                showToastDirect('ログインしました！');
+            } else {
+                showToastDirect('パスワードが正しくありません', true);
+            }
+        } catch(e) {
+            showToastDirect('サーバーに接続できません', true);
+        }
+    }
+
+    // 投票所 ログイン
+    async function doVoterLogin() {
+        const name = document.getElementById('voter-login-name').value.trim();
+        const password = document.getElementById('voter-login-pass').value;
+        if (!name || !password) return;
+        try {
+            const res = await fetch('/api/voter/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, password })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (typeof window._setCurrentVoter === 'function') {
+                    window._setCurrentVoter(data.voter);
+                } else {
+                    document.getElementById('display-voter-name').textContent = data.voter.name;
+                    document.getElementById('voter-auth-container').style.display = 'none';
+                    document.getElementById('voter-dashboard').style.display = 'block';
+                    showToastDirect(`${data.voter.name}さん、ログインしました！`);
+                }
+                document.getElementById('voter-login-pass').value = '';
+            } else {
+                const d = await res.json();
+                showToastDirect(d.error || 'ログイン情報が正しくありません', true);
+            }
+        } catch(e) {
+            showToastDirect('サーバーに接続できません', true);
+        }
+    }
+
+    // 投票者アカウント作成
+    async function addVoterAccount() {
+        const name = document.getElementById('voter-name').value.trim();
+        const password = document.getElementById('voter-pass').value;
+        if (!name || !password) return;
+        try {
+            const res = await fetch('/api/voters', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, password })
+            });
+            if (res.ok) {
+                document.getElementById('voter-name').value = '';
+                document.getElementById('voter-pass').value = '';
+                showToastDirect('投票者アカウントを作成しました！');
+                if (typeof window._loadVoters === 'function') {
+                    window._loadVoters();
+                }
+            } else {
+                const d = await res.json();
+                showToastDirect(d.error || 'エラーが発生しました', true);
+            }
+        } catch(e) {
+            showToastDirect('サーバーに接続できません', true);
+        }
+    }
+
+    // 選手追加
+    async function addPlayer() {
+        const name = document.getElementById('player-name').value.trim();
+        if (!name) return;
+        try {
+            const res = await fetch('/api/players', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (res.ok) {
+                document.getElementById('player-name').value = '';
+                showToastDirect('選手を追加しました！');
+                if (typeof window._loadPlayers === 'function') {
+                    window._loadPlayers();
+                }
+            } else {
+                const d = await res.json();
+                showToastDirect(d.error || 'エラーが発生しました', true);
+            }
+        } catch(e) {
+            showToastDirect('サーバーに接続できません', true);
+        }
+    }
+
+    // 管理者パスワード変更
+    async function doChangePassword() {
+        const pw = document.getElementById('new-admin-password').value;
+        if (!pw) return;
+        try {
+            const res = await fetch('/api/admin/password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pw })
+            });
+            if (res.ok) {
+                document.getElementById('new-admin-password').value = '';
+                showToastDirect('パスワードを変更しました！');
+            } else {
+                const d = await res.json();
+                showToastDirect(d.error || 'エラーが発生しました', true);
+            }
+        } catch(e) {
+            showToastDirect('サーバーに接続できません', true);
+        }
+    }
+
+    // 管理者ページ 過去のレース結果・払い戻し一覧の取得
+    async function loadAdminRaceResults() {
+        const selectEl = document.getElementById('admin-results-race-select');
+        if (!selectEl) return;
+        const raceNum = selectEl.value;
+        const contentEl = document.getElementById('admin-results-content');
+        const emptyEl = document.getElementById('admin-results-empty');
+        if (!contentEl || !emptyEl) return;
+        
+        try {
+            const res = await fetch(`/api/races/results?race_number=${raceNum}`);
+            const data = await res.json();
+            if (data.completed) {
+                contentEl.style.display = 'block';
+                emptyEl.style.display = 'none';
+                
+                // Set bet type label
+                const betTypesMap = { 'win': '単勝', 'two_teams': '2チーム', 'exacta': '2連単', 'trifecta': '3連単' };
+                document.getElementById('admin-results-bet-type').textContent = betTypesMap[data.bet_type] || data.bet_type;
+                
+                // Render ranking list
+                const rankingList = document.getElementById('admin-results-ranking-list');
+                rankingList.innerHTML = data.results.map(r => `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 1rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        <span style="font-weight: bold; color: var(--primary);">${r.position}着</span>
+                        <span>${r.player_name}</span>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">(+${r.points}点)</span>
+                    </div>
+                `).join('');
+                
+                // Render winning voters tbody
+                const winnersTbody = document.getElementById('admin-results-winners-tbody');
+                if (data.winning_voters.length > 0) {
+                    winnersTbody.innerHTML = data.winning_voters.map(w => `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 0.75rem 0.5rem; font-weight: bold;">${w.voter_name}</td>
+                            <td style="padding: 0.75rem 0.5rem; color: var(--primary); font-family: monospace;">${w.display_pattern}</td>
+                            <td style="padding: 0.75rem 0.5rem;">${w.amount} G</td>
+                            <td style="padding: 0.75rem 0.5rem; color: var(--warning); font-weight: bold;">${w.odds.toFixed(1)}倍</td>
+                            <td style="padding: 0.75rem 0.5rem; color: var(--success); font-weight: bold;">${w.payout.toLocaleString()} G</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    winnersTbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                                的中した投票者はいませんでした
+                            </td>
+                        </tr>
+                    `;
+                }
+            } else {
+                contentEl.style.display = 'none';
+                emptyEl.style.display = 'block';
+            }
+        } catch(e) {
+            showToastDirect('過去のレース結果のロードに失敗しました', true);
+        }
+    }
+
+    function showToastDirect(msg, isError) {
+        const t = document.getElementById('toast');
+        if (!t) return;
+        t.textContent = msg;
+        t.className = 'toast show' + (isError ? ' error' : '');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+    </script>
+</head>
+<body>
+    <div id="particles"></div>
+    
+    <div class="app-container">
+        <header class="glass-header">
+            <h1 class="logo">MK<span class="neon-text">RADAR</span></h1>
+            <nav>
+                <button class="nav-btn active" data-target="view-voting" onclick="switchView('view-voting', this)">🚪 投票所ログイン</button>
+                <button class="nav-btn" data-target="view-stats" onclick="switchView('view-stats', this)">総合成績表</button>
+                <button class="nav-btn" data-target="view-admin" onclick="switchView('view-admin', this)">⚙️ 管理者</button>
+            </nav>
+        </header>
+
+        <main class="content-area">
+            <!-- Voting Login & Personal Dashboard View -->
+            <section id="view-voting" class="view active">
+                
+                <!-- Voter Login Form -->
+                <div id="voter-auth-container" class="glass-card text-center" style="max-width: 500px; margin: 0 auto;">
+                    <h2>投票所 ログイン</h2>
+                    <p class="text-muted mt-4">管理者が発行したアカウント情報を入力してください</p>
+                    <div id="voter-auth-form" class="input-group mt-4" style="flex-direction: column;">
+                        <input type="text" id="voter-login-name" placeholder="お名前" required style="width:100%;" onkeydown="if(event.key==='Enter') doVoterLogin()">
+                        <input type="password" id="voter-login-pass" placeholder="パスワード" required style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:1rem 1.5rem; color:#fff; outline:none;" onkeydown="if(event.key==='Enter') doVoterLogin()">
+                        <button type="button" class="glow-btn block mt-4" onclick="doVoterLogin()">ログイン</button>
+                    </div>
+                </div>
+
+                <!-- Personal Voting Dashboard -->
+                <div id="voter-dashboard" style="display: none;">
+                    <div class="flex-between mb-4 flex-wrap" style="gap: 1rem;">
+                        <h2 class="view-title" style="margin-bottom:0;">🎫 <span id="display-voter-name"></span>の投票シート</h2>
+                        <button id="btn-voter-logout" class="glass-btn danger">ログアウト</button>
+                    </div>
+
+                    <div class="glass-card mb-4" style="background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <label style="font-weight: bold; font-size: 1.2rem; color: var(--primary);">対象レースを選択:</label>
+                                <select id="voter-race-number-select" style="background:rgba(0,0,0,0.6); border:2px solid var(--primary); border-radius:12px; padding:0.6rem 1.2rem; color:#fff; font-size:1.2rem; font-weight:bold; outline:none; cursor:pointer; box-shadow: 0 0 10px rgba(0,255,136,0.2); transition: all 0.3s;">
+                                    <option value="1">1R (第1レース)</option>
+                                    <option value="2">2R (第2レース)</option>
+                                    <option value="3">3R (第3レース)</option>
+                                    <option value="4">4R (第4レース)</option>
+                                    <option value="5">5R (第5レース)</option>
+                                    <option value="6">6R (第6レース)</option>
+                                    <option value="7">7R (第7レース)</option>
+                                    <option value="8">8R (第8レース)</option>
+                                    <option value="9">9R (第9レース)</option>
+                                    <option value="10">10R (第10レース)</option>
+                                </select>
+                            </div>
+                            <div style="font-size: 1.1rem; color: var(--text-muted); font-weight: 500;">
+                                選択中のレースに対して投票およびオッズ確認を行えます
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="no-race-message-public" class="glass-card text-center mb-4">
+                        <h2>現在開催中のレースはありません</h2>
+                        <p class="text-muted mt-4">次のレースが開始されるのをお待ちください...</p>
+                    </div>
+
+                    <!-- Completed Race Results display for Voters -->
+                    <div id="voter-race-results-section" class="glass-card mb-4" style="display: none;">
+                        <h2 class="view-title" style="margin-bottom:1.5rem; font-size:1.8rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                            <span>🏆 このレースの確定結果</span>
+                            <span style="font-size: 1rem; color: var(--success); font-weight: normal; background: rgba(0, 255, 136, 0.1); padding: 0.25rem 0.75rem; border-radius: 999px; border: 1px solid var(--success);">
+                                確定済
+                            </span>
+                        </h2>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                            <!-- Ranking Results -->
+                            <div class="glass-card" style="background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 12px;">
+                                <h4 style="margin-top:0; color:var(--primary); font-size: 1.15rem;">🏁 着順結果</h4>
+                                <div id="voter-results-ranking-list" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+                                    <!-- Loaded dynamically -->
+                                </div>
+                                <div style="margin-top: 1.5rem; border-top: 1px dashed var(--glass-border); padding-top: 1rem; font-size: 0.95rem;">
+                                    <span style="font-weight: bold;">賭け式: <span id="voter-results-bet-type" class="neon-text">---</span></span>
+                                </div>
+                            </div>
+                            
+                            <!-- Voters Bets & Hit/Payout status -->
+                            <div class="glass-card" style="background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 12px;">
+                                <h4 style="margin-top:0; color:var(--warning); font-size: 1.15rem;">🎫 あなたの投票と払戻結果</h4>
+                                <div class="overflow-auto" style="margin-top: 1rem;">
+                                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+                                        <thead>
+                                            <tr style="border-bottom: 1px solid var(--glass-border);">
+                                                <th style="padding: 0.5rem;">買い目</th>
+                                                <th style="padding: 0.5rem;">金額 (G)</th>
+                                                <th style="padding: 0.5rem; color: var(--warning);">購入オッズ</th>
+                                                <th style="padding: 0.5rem; color: var(--success);">払戻金 (G)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="voter-results-my-tbody">
+                                            <!-- Loaded dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="active-voting-content" style="display: none;">
+                        <!-- Carryover Alert Banner -->
+                        <div id="voter-carryover-banner" class="glass-card mb-4" style="display: none; background: linear-gradient(135deg, rgba(255, 170, 0, 0.15), rgba(255, 110, 0, 0.25)); border: 2px solid var(--warning); border-radius: 16px; padding: 1.25rem 1.75rem; box-shadow: 0 0 20px rgba(255, 170, 0, 0.2);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <span style="font-size: 2rem; filter: drop-shadow(0 0 5px rgba(255,170,0,0.5));">🔥</span>
+                                    <div>
+                                        <h4 style="margin: 0; color: var(--warning); font-size: 1.25rem; font-weight: bold; letter-spacing: 0.5px;">キャリーオーバー発生中！</h4>
+                                        <p style="margin: 0.25rem 0 0 0; font-size: 0.95rem; color: var(--text-muted); line-height: 1.4;">前レースまでの不的中配当プールが本レースに加算されます（さらに1割控除後の金額が配当に上乗せされます）。</p>
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">加算されるプール額 (1割控除後)</span>
+                                    <span id="voter-carryover-amount" style="font-size: 1.8rem; font-weight: 900; color: var(--warning); text-shadow: 0 0 10px rgba(255,170,0,0.4);">0 G</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Locked message -->
+                        <div id="voter-locked-message" class="glass-card text-center mb-4" style="display: none; background: rgba(255, 77, 77, 0.1); border: 2px solid #ff4d4d; border-radius: 20px; padding: 2.5rem 1.5rem;">
+                            <div style="font-size: 3rem; margin-bottom: 0.5rem; filter: drop-shadow(0 0 10px rgba(255,77,77,0.3));">🔒</div>
+                            <h2 style="color: #ff4d4d; margin: 0;">このレースは投票が締め切られました</h2>
+                            <p class="text-muted mt-2" style="font-size: 1.05rem;">只今、管理者が着順を確定中です。確定結果と配当の発表をお待ちください。</p>
+                        </div>
+
+                        <div class="glass-card mb-4 overflow-auto">
+                            <h3><span class="pulse-dot"></span> 出走メンバー戦績</h3>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>枠</th>
+                                        <th>選手</th>
+                                        <th>出走数</th>
+                                        <th>得点率</th>
+                                        <th>1着率(勝率)</th>
+                                        <th>2連対率</th>
+                                        <th>3連対率</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="voting-stats-table-body">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="glass-card odds-monitor mb-4">
+                            <h3><span class="pulse-dot"></span> 今回の指定賭け式: <span id="display-allowed-bet-type" class="neon-text"></span></h3>
+                            <div id="voting-odds-display" class="odds-content">
+                                <!-- Loaded dynamically -->
+                            </div>
+                        </div>
+
+                        <div class="glass-card mb-4" id="voter-mark-sheet-card">
+                            <h2 class="view-title" style="margin-bottom:1.5rem; font-size:1.8rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                                <span>🎫 投票マークシート</span>
+                                <span style="font-size: 1rem; color: var(--primary); font-weight: normal; background: rgba(0, 240, 255, 0.1); padding: 0.25rem 0.75rem; border-radius: 999px; border: 1px solid var(--primary-dim);">
+                                    式別: <span id="mark-sheet-bet-type-label">---</span>
+                                </span>
+                            </h2>
+                            
+                            <div class="mark-sheet-wrapper">
+                                <div class="mark-sheet-table">
+                                    <div class="mark-sheet-row header">
+                                        <div class="mark-sheet-col col-runner" style="justify-content: flex-start; padding-left: 1.5rem;">枠番 / 選手</div>
+                                        <div class="mark-sheet-col col-place place-1">1着</div>
+                                        <div class="mark-sheet-col col-place place-2">2着</div>
+                                        <div class="mark-sheet-col col-place place-3">3着</div>
+                                    </div>
+                                    <div id="mark-sheet-rows-container">
+                                        <!-- Will be dynamically populated with active race players -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mark-sheet-controls-grid mt-4">
+                                <div class="odds-summary-card">
+                                    <span class="label">現在の予想オッズ</span>
+                                    <div class="odds-display-container">
+                                        <span id="selected-bet-odds-val" class="odds-value">---</span>
+                                        <span id="selected-bet-pattern-display" class="pattern-display">選択されていません</span>
+                                    </div>
+                                </div>
+                                <div class="amount-input-card">
+                                    <span class="label">購入金額 (G)</span>
+                                    <div class="amount-input-container">
+                                        <input type="number" id="selected-bet-amount" placeholder="金額を入力..." min="100" step="100" style="width: 100%; text-align: center;">
+                                    </div>
+                                    <div class="amount-quick-buttons">
+                                        <button type="button" class="quick-amt-btn" data-value="100">+100</button>
+                                        <button type="button" class="quick-amt-btn" data-value="500">+500</button>
+                                        <button type="button" class="quick-amt-btn" data-value="1000">+1,000</button>
+                                        <button type="button" class="quick-amt-btn" data-value="clear">リセット</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mark-sheet-action-row mt-4">
+                                <button type="button" id="btn-add-to-cart" class="glass-btn primary" style="flex: 1; padding: 1.25rem;">
+                                    🛒 フォーメーションを買い目リストに追加
+                                </button>
+                                <button type="button" id="btn-quick-vote" class="glow-btn" style="flex: 1; padding: 1.25rem; background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                                    🔥 買い目リストに追加してすぐに購入する
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- CART LIST SECTION -->
+                        <div id="cart-list-section" class="glass-card mb-4" style="display: none;">
+                            <div class="flex-between mb-4 flex-wrap" style="gap: 1rem;">
+                                <h3>🛒 買い目リスト (送信前)</h3>
+                                <button type="button" id="btn-clear-cart" class="glass-btn danger" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                                    🗑️ リストを空にする
+                                </button>
+                            </div>
+                            <div class="overflow-auto">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>枠番</th>
+                                            <th>買い目</th>
+                                            <th>金額 (G)</th>
+                                            <th>想定オッズ</th>
+                                            <th>想定払戻 (G)</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cart-items-tbody">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="action-bar mt-4 text-center">
+                                <button type="button" id="btn-submit-cart" class="glow-btn block primary" style="max-width: 400px; margin: 0 auto; background: linear-gradient(135deg, var(--success), #00b359); box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);">
+                                    🚀 投票を購入する（確定）
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card mb-4 overflow-auto">
+                        <h3>📜 あなたの投票履歴（直近50件）</h3>
+                        <table class="data-table mt-4">
+                            <thead>
+                                <tr>
+                                    <th>レース</th>
+                                    <th>レース日時</th>
+                                    <th>賭け式</th>
+                                    <th>買い目</th>
+                                    <th>金額(G)</th>
+                                    <th>購入オッズ</th>
+                                    <th>結果</th>
+                                    <th>配当(G)</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="my-votes-table-body">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+
+
+            <!-- Stats View -->
+            <section id="view-stats" class="view">
+                <h2 class="view-title">総合成績表</h2>
+                <div class="glass-card overflow-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>選手名</th>
+                                <th>出走数</th>
+                                <th>合計得点</th>
+                                <th>得点率</th>
+                                <th>1着率(勝率)</th>
+                                <th>2連対率</th>
+                                <th>3連対率</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stats-table-body">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Admin View -->
+            <section id="view-admin" class="view">
+                <h2 class="view-title">管理者ダッシュボード</h2>
+                
+                <div id="admin-auth-container" class="glass-card text-center">
+                    <h3>管理者パスワードが必要です</h3>
+                    <div class="input-group mt-4" style="max-width: 400px; margin: 0 auto;">
+                        <input type="password" id="admin-password" placeholder="パスワード..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:1rem 1.5rem; color:#fff; outline:none;" onkeydown="if(event.key==='Enter') doAdminLogin()">
+                        <button type="button" class="glow-btn" onclick="doAdminLogin()">ログイン</button>
+                    </div>
+                </div>
+
+                <div id="admin-dashboard" style="display: none;">
+                    <!-- Admin Carryover Banner -->
+                    <div id="admin-carryover-banner" class="glass-card mb-4" style="background: linear-gradient(135deg, rgba(255, 170, 0, 0.1), rgba(255, 110, 0, 0.15)); border: 1px solid var(--warning); border-radius: 16px; padding: 1.25rem 1.5rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="font-size: 1.8rem; filter: drop-shadow(0 0 5px rgba(255,170,0,0.3));">🔥</span>
+                                <div>
+                                    <h4 style="margin: 0; color: var(--warning); font-size: 1.2rem; font-weight: bold;">現在のキャリーオーバー金額</h4>
+                                    <p style="margin: 0.25rem 0 0 0; font-size: 0.9rem; color: var(--text-muted);">不的中時にプールされた金額です。次のレースの配当金に（さらに1割引いた上で）上乗せされます。</p>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                                <div style="text-align: right;">
+                                    <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">プール金額 (1割控除前)</span>
+                                    <span id="admin-carryover-amount" style="font-size: 1.6rem; font-weight: 900; color: var(--warning); text-shadow: 0 0 10px rgba(255,170,0,0.3);">0 G</span>
+                                </div>
+                                <button type="button" class="glass-btn danger" style="padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;" onclick="resetCarryoverPool()">リセット</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card mb-4" style="background: rgba(0,0,0,0.4); border: 2px solid var(--primary); padding: 1.25rem; border-radius: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <label style="font-weight: bold; font-size: 1.2rem; color: var(--primary);">操作・管理するレースを選択:</label>
+                                <select id="admin-race-number-select" style="background:rgba(0,0,0,0.6); border:1px solid var(--glass-border); border-radius:12px; padding:0.6rem 1.2rem; color:#fff; font-size:1.2rem; font-weight:bold; outline:none; cursor:pointer; transition: all 0.3s;">
+                                    <option value="1">1R</option>
+                                    <option value="2">2R</option>
+                                    <option value="3">3R</option>
+                                    <option value="4">4R</option>
+                                    <option value="5">5R</option>
+                                    <option value="6">6R</option>
+                                    <option value="7">7R</option>
+                                    <option value="8">8R</option>
+                                    <option value="9">9R</option>
+                                    <option value="10">10R</option>
+                                </select>
+                            </div>
+                            <div style="font-size: 1.1rem; color: var(--text-muted); font-weight: 500;">
+                                選択されたレースの「出走表作成」および「着順記録・締め切り・確定」を管理できます。
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Per-Race Voting Control Panel -->
+                    <div class="glass-card mb-4" style="background: linear-gradient(135deg, rgba(255, 77, 77, 0.08), rgba(0, 0, 0, 0.5)); border: 2px dashed #ff4d4d; padding: 1.5rem; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; box-shadow: 0 0 20px rgba(255, 77, 77, 0.1);">
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                            <h3 style="margin: 0; color: #fff; display: flex; align-items: center; gap: 0.75rem; font-size: 1.3rem;">
+                                <span>🔒 投票締め切りコントロール</span>
+                                <span id="admin-race-lock-status" style="font-size: 0.95rem; font-weight: bold; padding: 0.25rem 0.75rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.1);"></span>
+                            </h3>
+                            <p class="text-muted" style="font-size: 0.9rem; margin: 0; line-height: 1.4;">
+                                💡 【投票締め切り手順】: レース作成後、この赤いボタンを押すとスマホ側の投票をロックし、結果選択が行えるようになります。
+                            </p>
+                        </div>
+                        <div>
+                            <button type="button" id="admin-quick-lock-btn" class="glow-btn danger" style="padding: 0.8rem 1.8rem; font-size: 1.1rem; font-weight: bold; margin: 0; background: linear-gradient(135deg, #ff4d4d, #ff0055); box-shadow: 0 0 20px rgba(255, 0, 85, 0.4); border: none; display: none;">
+                                🚨 投票を締め切る
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card mb-4">
+                        <h3>1. 投票者アカウント管理</h3>
+                        <div id="add-voter-form" class="input-group mt-4">
+                            <input type="text" id="voter-name" placeholder="投票者名（端末名）..." required onkeydown="if(event.key==='Enter') addVoterAccount()">
+                            <input type="password" id="voter-pass" placeholder="パスワード..." required style="background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:1rem 1.5rem; color:#fff; outline:none;" onkeydown="if(event.key==='Enter') addVoterAccount()">
+                            <button type="button" class="glow-btn" onclick="addVoterAccount()">アカウント作成</button>
+                        </div>
+                        <div id="voters-list" class="grid-list mt-4">
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="glass-card mb-4">
+                        <h3>2. 選手管理（登録・削除）</h3>
+                        <div id="add-player-form" class="input-group mt-4">
+                            <input type="text" id="player-name" placeholder="選手名を入力..." required onkeydown="if(event.key==='Enter') addPlayer()">
+                            <button type="button" class="glow-btn" onclick="addPlayer()">選手追加</button>
+                        </div>
+                        <div id="players-list" class="grid-list mt-4">
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="glass-card mb-4">
+                        <h3>3. 選手戦績の初期値設定（マニュアル入力）</h3>
+                        <p class="text-muted mt-2" style="font-size: 0.9rem;">選手の過去の戦績（出走数、得点、各着順回数）をマニュアルで設定・調整できます。※この数値はアプリ内でのレース結果と合算されます。</p>
+                        
+                        <div class="mt-4" style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                            <div>
+                                <label style="display:block; margin-bottom:0.5rem; font-weight:bold;">選手を選択:</label>
+                                <select id="stats-player-select" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:0.8rem 1.2rem; color:#fff; outline:none; font-size:1.1rem; cursor:pointer;">
+                                    <option value="">-- 選手を選択してください --</option>
+                                </select>
+                                
+                                <div style="display: flex; gap: 1.5rem; margin-top: 1rem; flex-wrap: wrap;">
+                                    <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; font-weight: bold; color: var(--primary);">
+                                        <input type="radio" name="stats-save-mode" value="accumulate" checked style="accent-color: var(--primary); transform: scale(1.1);">
+                                        📥 既存の戦績に加算（蓄積）
+                                    </label>
+                                    <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; font-weight: bold; color: var(--text-muted);" id="lbl-save-overwrite">
+                                        <input type="radio" name="stats-save-mode" value="overwrite" style="accent-color: var(--primary); transform: scale(1.1);">
+                                        ✏️ 数値を直接上書き
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div id="player-stats-form-container" style="display: none; animation: fadeIn 0.3s ease;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                                    <div>
+                                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem; color:var(--primary); font-weight:bold;">1着 (10点)</label>
+                                        <input type="number" id="stats-first-places" min="0" value="0" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:0.8rem; color:#fff; outline:none; font-size:1.1rem;">
+                                    </div>
+                                    <div>
+                                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem; color:var(--primary); font-weight:bold;">2着 (8点)</label>
+                                        <input type="number" id="stats-second-places" min="0" value="0" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:0.8rem; color:#fff; outline:none; font-size:1.1rem;">
+                                    </div>
+                                    <div>
+                                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem; color:var(--primary); font-weight:bold;">3着 (7点)</label>
+                                        <input type="number" id="stats-third-places" min="0" value="0" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:0.8rem; color:#fff; outline:none; font-size:1.1rem;">
+                                    </div>
+                                    <div>
+                                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem; color:var(--text-main); font-weight:bold;">4着 (5点)</label>
+                                        <input type="number" id="stats-fourth-places" min="0" value="0" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:0.8rem; color:#fff; outline:none; font-size:1.1rem;">
+                                    </div>
+                                    <div>
+                                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem; color:var(--text-main); font-weight:bold;">5着 (4点)</label>
+                                        <input type="number" id="stats-fifth-places" min="0" value="0" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:0.8rem; color:#fff; outline:none; font-size:1.1rem;">
+                                    </div>
+                                    <div>
+                                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem; color:var(--text-main); font-weight:bold;">6着 (3点)</label>
+                                        <input type="number" id="stats-sixth-places" min="0" value="0" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:0.8rem; color:#fff; outline:none; font-size:1.1rem;">
+                                    </div>
+                                    <div>
+                                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem; color:var(--text-muted);">着外 (0点)</label>
+                                        <input type="number" id="stats-unplaced" min="0" value="0" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:0.8rem; color:#fff; outline:none; font-size:1.1rem;">
+                                    </div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; border-top: 1px dashed var(--glass-border); padding-top: 1.5rem;">
+                                    <div>
+                                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem; color:var(--text-muted);">合計出走回数</label>
+                                        <input type="number" id="stats-races-played" readonly style="width:100%; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); border-radius:12px; padding:0.8rem; color:var(--text-muted); outline:none; font-size:1.1rem; font-weight:bold;">
+                                    </div>
+                                    <div>
+                                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem; color:var(--text-muted);">合計得点 (自動計算/編集可)</label>
+                                        <input type="number" id="stats-total-points" min="0" value="0" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:0.8rem; color:#fff; outline:none; font-size:1.1rem;">
+                                    </div>
+                                    <div>
+                                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem; color:var(--primary); font-weight:bold;">得点率 (自動計算)</label>
+                                        <input type="text" id="stats-point-rate" readonly value="0.00" style="width:100%; background:rgba(0, 240, 255, 0.05); border:1px solid var(--primary); border-radius:12px; padding:0.8rem; color:var(--primary); outline:none; font-size:1.1rem; font-weight:bold; text-align:center; box-shadow:0 0 10px rgba(0, 240, 255, 0.1);">
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                                    <button id="btn-save-player-stats" class="glow-btn primary" style="flex: 1; min-width: 150px; margin: 0;">戦績を保存・更新</button>
+                                    <button id="btn-reset-player-stats" class="glow-btn danger" style="flex: 1; min-width: 150px; margin: 0; background: linear-gradient(135deg, #ff4d4d, #b30000); box-shadow: 0 0 15px rgba(255, 77, 77, 0.4); border: none;">🗑️ 登録戦績を削除</button>
+                                </div>
+                                <div id="stats-history-container" style="display: none; margin-top: 2rem; border-top: 1px dashed var(--glass-border); padding-top: 1.5rem;">
+                                    <h4 style="margin-bottom: 0.75rem; color: #fff;">🕒 登録された戦績の履歴</h4>
+                                    <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">加算（蓄積）された戦績データが一覧表示されます。誤って登録した履歴を「選んで削除」できます。</p>
+                                    <div id="stats-history-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                        <!-- Loaded dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card mb-4">
+                        <h3>4. 次のレースの出走表作成</h3>
+                        <p class="text-muted mt-4">出走する選手をタップして選択してください</p>
+                        <div id="setup-players-list" class="checkbox-grid mt-4">
+                            <!-- Loaded dynamically -->
+                        </div>
+                        
+                        <!-- Team Allocation Section for 2-Team Bet Type -->
+                        <div id="admin-team-allocation-section" class="mt-4" style="display: none; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                            <h4 style="color: #fff; margin-bottom: 0.5rem;">👥 チーム分けの設定</h4>
+                            <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">選択した出走選手を「赤チーム」または「青チーム」に振り分けてください。</p>
+                            <div id="admin-team-allocation-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+                                <!-- Dynamically loaded when players are checked -->
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 mb-4" style="border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                            <label style="font-weight:bold; margin-right:1rem;">許可する賭け式を指定:</label>
+                            <select id="admin-bet-type" style="background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:0.5rem 1rem; color:#fff; outline:none;">
+                                <option value="win">単勝</option>
+                                <option value="exacta">2連単</option>
+                                <option value="trifecta">3連単</option>
+                                <option value="two_teams">2チーム</option>
+                            </select>
+                        </div>
+                        
+                        <div class="action-bar mt-4" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <button id="btn-start-race" class="glow-btn primary" style="width: 100%; margin: 0;">レースを作成・開始</button>
+                        </div>
+
+                        <div class="mt-4" style="border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                            <h4 style="margin-bottom: 0.5rem; color: #fff;">📺 全員投票掲示板コントロール（外部ディスプレイ用）</h4>
+                            <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">
+                                外部掲示板ページ（<a href="/board" target="_blank" style="color: var(--primary); text-decoration: underline;">/board</a>）での全員の買い目・賭け金の表示/非表示をコントロールします。
+                            </p>
+                            <div style="display: flex; gap: 1rem; flex-wrap: wrap; width: 100%;">
+                                <button id="btn-reveal-bets" class="glow-btn success" style="flex: 1; min-width: 150px; margin: 0; background: linear-gradient(135deg, #00ff88, #00b359); box-shadow: 0 0 15px rgba(0, 255, 136, 0.4); border: none;">👁️ 全員の買い目を表示する</button>
+                                <button id="btn-hide-bets" class="glow-btn danger" style="flex: 1; min-width: 150px; margin: 0; background: linear-gradient(135deg, #ff4d4d, #b30000); box-shadow: 0 0 15px rgba(255, 77, 77, 0.4); border: none;">🙈 買い目を非表示にする</button>
+                            </div>
+                        </div>
+
+                        <div class="mt-4" style="border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                            <h4 style="margin-bottom: 0.5rem; color: #fff;">📊 投票ページ オッズ表示コントロール</h4>
+                            <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">
+                                投票者のスマホ画面でのリアルタイムオッズ表（倍率）の表示/非表示を切り替えます。非表示にすると締め切り前のオッズを隠せます。
+                            </p>
+                            <div style="display: flex; gap: 1rem; flex-wrap: wrap; width: 100%;">
+                                <button id="btn-show-odds" class="glow-btn success" style="flex: 1; min-width: 150px; margin: 0; background: linear-gradient(135deg, #00f0ff, #0077ff); box-shadow: 0 0 15px rgba(0, 240, 255, 0.4); border: none;">👁️ オッズを表示する</button>
+                                <button id="btn-hide-odds" class="glow-btn danger" style="flex: 1; min-width: 150px; margin: 0; background: linear-gradient(135deg, #7a7a8a, #4a4a5a); box-shadow: 0 0 15px rgba(122, 122, 138, 0.3); border: none;">🙈 オッズを非表示にする</button>
+                            </div>
+                        </div>
+
+                        <div class="mt-4" style="border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                            <h4 style="margin-bottom: 0.75rem; color: #fff;">作成済みの出走表（クリックで削除）</h4>
+                            <div id="admin-active-races-list" class="grid-list mt-2">
+                                <!-- Loaded dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card mb-4" id="admin-active-race-section" style="display: none;">
+                        <div class="flex-between mb-4 flex-wrap" style="gap: 1rem;">
+                            <h3 style="margin: 0;">5. 現在のレース状況・着順記録</h3>
+                            <div>
+                                <button id="btn-lock-race" class="glow-btn danger" style="margin-right: 1rem;">🔒 投票を締め切る</button>
+                                <button id="btn-reset-record" class="glass-btn">リセット</button>
+                            </div>
+                        </div>
+                        <p class="text-muted mt-2" id="admin-record-instruction">投票締め切り後、各着順（1着、2着、3着...）の選手を選択してください：</p>
+                        
+                        <div class="live-results-bar mt-4" style="display: none;">
+                            <div class="label" style="font-weight: bold; color: var(--primary);">確定着順:</div>
+                            <div id="live-ranking-display" class="ranking-slots" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;"></div>
+                        </div>
+
+                        <div id="record-players-grid" class="racer-buttons-grid mt-4" style="display: none;">
+                            <!-- Loaded dynamically -->
+                        </div>
+
+                        <div id="record-players-selects-container" class="mt-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; background: rgba(0,0,0,0.2); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                            <!-- Dropdowns will be loaded dynamically -->
+                        </div>
+                        
+                        <div class="action-bar mt-4">
+                            <button id="btn-submit-record" class="glow-btn block" disabled>着順を確定し、配当を計算する</button>
+                        </div>
+                    </div>
+
+                    <!-- Completed Race Results & Payouts Card for Admins -->
+                    <div class="glass-card mt-4" id="admin-race-results-card">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                            <h3 style="margin: 0;">🏆 5. レース確定結果・的中払い戻し確認</h3>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <label style="font-weight: bold; color: var(--primary);">レースを選択:</label>
+                                <select id="admin-results-race-select" style="background:rgba(0,0,0,0.6); border:1px solid var(--glass-border); border-radius:12px; padding:0.4rem 1rem; color:#fff; font-size:1.1rem; font-weight:bold; outline:none; cursor:pointer;" onchange="loadAdminRaceResults()">
+                                    <option value="1">1R</option>
+                                    <option value="2">2R</option>
+                                    <option value="3">3R</option>
+                                    <option value="4">4R</option>
+                                    <option value="5">5R</option>
+                                    <option value="6">6R</option>
+                                    <option value="7">7R</option>
+                                    <option value="8">8R</option>
+                                    <option value="9">9R</option>
+                                    <option value="10">10R</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="text-muted mt-2" style="font-size: 0.9rem;">
+                            確定したレースの着順結果、最終オッズ、および的中した投票者の払い戻し金額一覧を確認できます。
+                        </p>
+                        
+                        <div id="admin-results-content" class="mt-4" style="display: none; animation: fadeIn 0.3s ease;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                                <!-- Left side: Race Results -->
+                                <div class="glass-card" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 12px;">
+                                    <h4 style="margin-top:0; color:var(--primary);">🏁 確定着順</h4>
+                                    <div id="admin-results-ranking-list" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+                                        <!-- Loaded dynamically -->
+                                    </div>
+                                    <div style="margin-top: 1.5rem; border-top: 1px dashed var(--glass-border); padding-top: 1rem;">
+                                        <span style="font-weight: bold;">賭け式: <span id="admin-results-bet-type" class="neon-text">---</span></span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Right side: Winning Voters Payouts -->
+                                <div class="glass-card" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 12px;">
+                                    <h4 style="margin-top:0; color:var(--success);">💰 的中した投票者・払戻金一覧</h4>
+                                    <div class="overflow-auto" style="margin-top: 1rem;">
+                                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+                                            <thead>
+                                                <tr style="border-bottom: 1px solid var(--glass-border);">
+                                                    <th style="padding: 0.5rem;">投票者</th>
+                                                    <th style="padding: 0.5rem;">買い目</th>
+                                                    <th style="padding: 0.5rem;">賭け金</th>
+                                                    <th style="padding: 0.5rem; color: var(--warning);">オッズ</th>
+                                                    <th style="padding: 0.5rem; color: var(--success);">払戻額</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="admin-results-winners-tbody">
+                                                <!-- Loaded dynamically -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="admin-results-empty" class="text-center text-muted" style="padding: 2rem; background: rgba(0,0,0,0.15); border-radius: 12px; border: 1px dashed var(--glass-border); margin-top: 1rem;">
+                            このレース番号の確定結果はまだありません
+                        </div>
+                    </div>
+
+                    <div class="glass-card mt-4">
+                        <h3>6. 管理者設定</h3>
+                        <div id="change-password-form" class="input-group mt-4">
+                            <input type="password" id="new-admin-password" placeholder="新しいパスワードを入力..." required style="background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:1rem 1.5rem; color:#fff; outline:none;" onkeydown="if(event.key==='Enter') doChangePassword()">
+                            <button type="button" class="glass-btn" onclick="doChangePassword()">パスワード変更</button>
+                        </div>
+                    </div>
+
+                    <div class="glass-card mt-4" id="admin-commission-log-card">
+                        <div class="flex-between" style="align-items: center; gap: 1rem; flex-wrap: wrap; display: flex; justify-content: space-between; width: 100%;">
+                            <h3 style="margin: 0;">💵 7. 投票金・控除金集計ログ（浮いた残り1割）</h3>
+                            <button id="btn-refresh-commission-log" class="glass-btn primary" style="padding: 0.5rem 1rem; font-size: 0.9rem; cursor: pointer;">🔄 ログを更新</button>
+                        </div>
+                        <p class="text-muted mt-2" style="font-size: 0.9rem; margin-top: 8px;">
+                            各レースにおける総売上（投票額）、控除金（売上の1割）、および実際の払戻後の浮き金額（利益）を集計した管理者専用のログです。
+                        </p>
+                        <div class="table-container mt-4" style="margin-top: 1.5rem; overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--glass-border);">
+                                        <th style="padding: 1rem;">レース</th>
+                                        <th style="padding: 1rem;">総売上 (G)</th>
+                                        <th style="padding: 1rem; color: var(--primary);">控除金 (10%) (G)</th>
+                                        <th style="padding: 1rem; color: var(--warning);">キャリーオーバー控除 (10%) (G)</th>
+                                        <th style="padding: 1rem;">払戻額合計 (G)</th>
+                                        <th style="padding: 1rem; color: var(--success);">実際の浮き (利益) (G)</th>
+                                        <th style="padding: 1rem;">状態</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="commission-log-table-body">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                                <tfoot id="commission-log-table-foot" style="font-weight: bold; background: rgba(255,255,255,0.03); border-top: 2px solid var(--glass-border);">
+                                    <!-- Totals loaded dynamically -->
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="glass-card mt-4" id="admin-voters-status-card">
+                        <div class="flex-between" style="align-items: center; gap: 1rem; flex-wrap: wrap; display: flex; justify-content: space-between; width: 100%;">
+                            <h3 style="margin: 0;">👥 7. 投票者別の投票状況一覧</h3>
+                            <button id="btn-refresh-voters-bets" class="glass-btn primary" style="padding: 0.5rem 1rem; font-size: 0.9rem; cursor: pointer;">🔄 投票状況を更新</button>
+                        </div>
+                        <p class="text-muted mt-2" style="font-size: 0.9rem; margin-top: 8px;">
+                            各投票者の累計投票金額（G）および、投票した具体的な買い目、金額、オッズをリアルタイムに確認できます。
+                        </p>
+                        
+                        <div id="voters-bets-container" class="mt-4" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;">
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Standalone All Completed Races Results & Payout History Card -->
+                    <div class="glass-card mt-4" id="admin-all-results-history-card">
+                        <div class="flex-between" style="align-items: center; gap: 1rem; flex-wrap: wrap; display: flex; justify-content: space-between; width: 100%;">
+                            <h3 style="margin: 0;">🏆 8. 確定レース結果・的中者払戻金履歴（全レース一覧）</h3>
+                            <button id="btn-refresh-completed-history" class="glass-btn primary" style="padding: 0.5rem 1rem; font-size: 0.9rem; cursor: pointer;">🔄 履歴を更新</button>
+                        </div>
+                        <p class="text-muted mt-2" style="font-size: 0.9rem; margin-top: 8px;">
+                            確定したすべてのレースの着順結果、および的中した投票者の詳細（誰が当てて、いくら賭けて、いくら払い戻されたか）を全レース一元的に確認・保存して見ることができます。
+                        </p>
+                        
+                        <div id="completed-races-history-container" class="mt-4" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                            <!-- Dynamically loaded -->
+                        </div>
+                    </div>
+
+                </div> <!-- End admin-dashboard -->
+            </section>
+        </main>
+    </div>
+
+    <div id="toast" class="toast">Action completed!</div>
+    <script src="{{ url_for('static', filename='app.js') }}?v={{ v }}"></script>
+</body>
+</html>

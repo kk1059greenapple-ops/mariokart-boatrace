@@ -1,0 +1,1014 @@
+:root {
+    --bg-dark: #0a0a0f;
+    --glass-bg: rgba(20, 20, 30, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --primary: #00f0ff;
+    --primary-dim: rgba(0, 240, 255, 0.2);
+    --secondary: #bd00ff;
+    --accent: #ff0055;
+    --text-main: #f0f0f5;
+    --text-muted: #8b8b9e;
+    --success: #00ff88;
+    --danger: #ff3366;
+    
+    --shadow-neon: 0 0 20px rgba(0, 240, 255, 0.3);
+    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image: 
+        radial-gradient(circle at 15% 50%, rgba(189, 0, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.08) 0%, transparent 50%);
+}
+
+/* Background Particles effect (pure CSS) */
+#particles {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    pointer-events: none;
+    z-index: -1;
+    background: 
+        linear-gradient(rgba(10, 10, 15, 0.9), rgba(10, 10, 15, 0.9)),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Typography & Headers */
+h1, h2, h3 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+}
+
+.logo {
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: -1px;
+}
+
+.neon-text {
+    color: var(--primary);
+    text-shadow: 0 0 10px var(--primary-dim);
+}
+
+.view-title {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    background: linear-gradient(135deg, #fff, #8b8b9e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Glassmorphism Elements */
+.glass-header {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+    box-shadow: var(--shadow-glass);
+}
+
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 2rem;
+    box-shadow: var(--shadow-glass);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+.glass-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Navigation */
+nav {
+    display: flex;
+    gap: 1rem;
+}
+
+.nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.nav-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-btn.active {
+    color: var(--primary);
+    background: var(--primary-dim);
+    box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.1);
+}
+
+/* Views & SPA logic */
+.view {
+    display: none;
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.view.active {
+    display: block;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Forms & Inputs */
+.input-group {
+    display: flex;
+    gap: 1rem;
+}
+
+input[type="text"], input[type="number"] {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    color: #fff;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+input[type="text"]:focus, input[type="number"]:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-dim);
+}
+
+.betting-slips {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.bet-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(0,0,0,0.2);
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+}
+
+.bet-row .row-num {
+    font-weight: bold;
+    color: var(--cyan);
+    font-size: 1.2rem;
+    min-width: 24px;
+}
+
+.bet-row select, .bet-row input {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 0.8rem;
+    color: #fff;
+    outline: none;
+    flex: 1;
+}
+
+.bet-row input {
+    max-width: 120px;
+}
+
+.bet-row select:disabled, .bet-row input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    .bet-row {
+        flex-wrap: wrap;
+    }
+    .bet-row select, .bet-row input {
+        flex: 1 1 100%;
+        max-width: none;
+    }
+}
+
+/* Buttons */
+.glow-btn {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-neon);
+    transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.glow-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.glow-btn:hover::before {
+    left: 100%;
+}
+
+.glow-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+    filter: brightness(1.1);
+}
+
+.glow-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    filter: grayscale(1);
+}
+
+.glass-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    border-radius: 12px;
+    padding: 1rem 2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.glass-btn:hover {
+    background: rgba(255,255,255,0.1);
+}
+.glass-btn.danger:hover {
+    background: rgba(255, 51, 102, 0.2);
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+.block { width: 100%; }
+.mt-4 { margin-top: 1.5rem; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+/* Grid & Lists */
+.grid-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.player-tag {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.05);
+    padding: 1rem;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: 600;
+    transition: transform 0.2s;
+    position: relative;
+}
+.player-tag:hover {
+    transform: scale(1.05);
+    border-color: var(--primary-dim);
+}
+.delete-player-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-size: 14px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(255, 51, 102, 0.5);
+    transition: transform 0.2s;
+}
+.player-tag:hover .delete-player-btn {
+    display: flex;
+}
+.delete-player-btn:hover {
+    transform: scale(1.1);
+}
+
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.setup-checkbox-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0,0,0,0.3);
+    border: 2px solid var(--glass-border);
+    border-radius: 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+.setup-checkbox-label input {
+    display: none;
+}
+.setup-checkbox-label.selected {
+    border-color: var(--primary);
+    background: var(--primary-dim);
+    box-shadow: inset 0 0 15px rgba(0,240,255,0.2);
+    color: #fff;
+}
+
+/* Racer Buttons (Record View) */
+.racer-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+}
+
+.racer-btn {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 2rem 1rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+}
+
+.racer-btn:hover:not(.finished) {
+    transform: translateY(-5px) scale(1.02);
+    background: rgba(255,255,255,0.08);
+    border-color: var(--primary-dim);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.racer-btn.finished {
+    opacity: 0.5;
+    transform: scale(0.95);
+    border-color: var(--success);
+    background: rgba(0, 255, 136, 0.1);
+    pointer-events: none;
+}
+
+.racer-btn .rank-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: var(--success);
+    color: #000;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1rem;
+    box-shadow: 0 0 15px var(--success);
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.3s;
+}
+
+.racer-btn.finished .rank-badge {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Live Ranking Display */
+.live-results-bar {
+    background: rgba(0,0,0,0.5);
+    border-radius: 16px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    min-height: 80px;
+}
+.live-results-bar .label {
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.ranking-slots {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.rank-slot {
+    background: var(--glass-bg);
+    border: 1px solid var(--primary-dim);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary);
+    animation: popIn 0.3s ease;
+}
+@keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    80% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Data Table */
+.overflow-auto { overflow-x: auto; }
+.data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+.data-table th {
+    text-align: left;
+    padding: 1rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+.data-table td {
+    padding: 1rem;
+    background: rgba(0,0,0,0.2);
+}
+.data-table tr td:first-child {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+    font-weight: 700;
+    color: #fff;
+}
+.data-table tr td:last-child {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+.data-table tr {
+    transition: transform 0.2s;
+}
+.data-table tr:hover td {
+    background: rgba(255,255,255,0.05);
+}
+
+/* Odds Monitor */
+.odds-monitor {
+    border: 1px solid var(--primary-dim);
+    box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.05);
+}
+.pulse-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 10px;
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 85, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 0, 85, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 85, 0); }
+}
+
+.tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 1rem;
+}
+.tab-btn {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.tab-btn.active {
+    background: var(--primary-dim);
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.odds-content {
+    margin-top: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.odds-card {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.odds-card .pattern {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+.odds-card .pattern-names {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+.odds-card .odds-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--success);
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    color: #fff;
+    padding: 1rem 2rem;
+    border-radius: 30px;
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 1000;
+}
+.toast.show {
+    bottom: 30px;
+}
+.toast.error {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+/* --- Boat Race Grid Mark Sheet --- */
+.mark-sheet-wrapper {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 1.5rem 0;
+    -webkit-overflow-scrolling: touch;
+}
+
+.mark-sheet-table {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 440px; /* Ensures grid has enough space to align properly */
+}
+
+@media (max-width: 600px) {
+    .mark-sheet-table {
+        min-width: 320px; /* Scale down for smaller screens */
+    }
+}
+
+.mark-sheet-row {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0.75rem 0;
+    transition: background-color 0.2s;
+}
+
+.mark-sheet-row:last-child {
+    border-bottom: none;
+}
+
+.mark-sheet-row.header {
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 2px solid var(--glass-border);
+    font-weight: bold;
+    color: var(--text-muted);
+    padding: 1rem 0;
+}
+
+.mark-sheet-col {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.col-runner {
+    flex: 2;
+    min-width: 140px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.col-place {
+    flex: 1;
+    min-width: 60px;
+}
+
+@media (max-width: 480px) {
+    .col-runner {
+        min-width: 110px;
+        gap: 0.5rem;
+    }
+    .col-place {
+        min-width: 50px;
+    }
+    .cell-select-btn {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 0.95rem !important;
+    }
+    .runner-boat-badge {
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 0.9rem !important;
+    }
+    .runner-name-text {
+        font-size: 0.9rem;
+    }
+}
+
+/* Boat Colors (Standard Japanese Boat Race colors) */
+.boat-badge-1 { background: #ffffff !important; color: #000000 !important; }
+.boat-badge-2 { background: #1e293b !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.2); }
+.boat-badge-3 { background: #ef4444 !important; color: #ffffff !important; }
+.boat-badge-4 { background: #3b82f6 !important; color: #ffffff !important; }
+.boat-badge-5 { background: #eab308 !important; color: #000000 !important; }
+.boat-badge-6 { background: #22c55e !important; color: #ffffff !important; }
+
+.runner-boat-badge {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-weight: 900;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.runner-name-text {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--text-main);
+}
+
+/* Cell Selection Button */
+.cell-select-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.cell-select-btn:hover:not(:disabled) {
+    border-color: var(--primary-dim);
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.cell-select-btn.active {
+    background: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: #000000 !important;
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+    transform: scale(1.1);
+}
+
+.cell-select-btn:disabled {
+    opacity: 0.15;
+    cursor: not-allowed;
+}
+
+/* Controls Grid */
+.mark-sheet-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .mark-sheet-controls-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.odds-summary-card, .amount-input-card {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.odds-summary-card .label, .amount-input-card .label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: bold;
+}
+
+.odds-display-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.odds-display-container .odds-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--warning);
+    text-shadow: 0 0 15px rgba(255, 170, 0, 0.4);
+    line-height: 1.1;
+}
+
+.odds-display-container .pattern-display {
+    font-size: 0.95rem;
+    color: var(--primary);
+    font-weight: bold;
+    margin-top: 4px;
+}
+
+.amount-input-container {
+    display: flex;
+    align-items: center;
+}
+
+.amount-input-container input {
+    background: rgba(0,0,0,0.4);
+    border: 2px solid var(--glass-border);
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 0.75rem;
+    border-radius: 12px;
+}
+
+.amount-input-container input:focus {
+    border-color: var(--primary);
+}
+
+.amount-quick-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+}
+
+.quick-amt-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-main);
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quick-amt-btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: var(--primary-dim);
+}
+
+/* Actions */
+.mark-sheet-action-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.cart-item-row td {
+    vertical-align: middle;
+}
+
+/* --- High-end Mobile Responsive Optimizations --- */
+@media (max-width: 600px) {
+    /* 1. Container & Spacing */
+    .app-container {
+        padding: 0.75rem 0.5rem !important;
+    }
+    
+    /* 2. Glass Header and SPA Nav Buttons */
+    .glass-header {
+        padding: 0.85rem 1rem !important;
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+        margin-bottom: 1.5rem !important;
+        border-radius: 16px !important;
+    }
+    .logo {
+        font-size: 1.6rem !important;
+    }
+    nav {
+        width: 100% !important;
+        justify-content: space-between !important;
+        gap: 0.35rem !important;
+    }
+    .nav-btn {
+        padding: 0.5rem 0.35rem !important;
+        font-size: 0.85rem !important;
+        flex: 1 !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+        border-radius: 8px !important;
+    }
+
+    /* 3. Cards */
+    .glass-card {
+        padding: 1rem !important;
+        border-radius: 16px !important;
+        margin-bottom: 1rem !important;
+    }
+    .view-title {
+        font-size: 1.6rem !important;
+        margin-bottom: 1.25rem !important;
+    }
+    
+    /* 4. Active Voters Stats Table and other tables */
+    .data-table th, .data-table td {
+        padding: 0.6rem 0.35rem !important;
+        font-size: 0.8rem !important;
+    }
+    .data-table th {
+        font-size: 0.75rem !important;
+        letter-spacing: 0.5px !important;
+    }
+
+    /* 5. Mark Sheet Controls */
+    .mark-sheet-controls-grid {
+        gap: 0.75rem !important;
+    }
+    .odds-summary-card, .amount-input-card {
+        padding: 0.85rem 1rem !important;
+        border-radius: 12px !important;
+        gap: 0.5rem !important;
+    }
+    .odds-display-container .odds-value {
+        font-size: 1.8rem !important;
+    }
+    .amount-input-container input {
+        font-size: 1.25rem !important;
+        padding: 0.5rem !important;
+        border-radius: 8px !important;
+    }
+    .quick-amt-btn {
+        padding: 0.4rem 0 !important;
+        font-size: 0.75rem !important;
+        border-radius: 6px !important;
+    }
+    .mark-sheet-action-row {
+        flex-direction: column !important;
+        gap: 0.6rem !important;
+    }
+    .mark-sheet-action-row button {
+        width: 100% !important;
+        padding: 0.95rem !important;
+        font-size: 0.95rem !important;
+        border-radius: 10px !important;
+        margin: 0 !important;
+    }
+    
+    /* 6. Dynamic Odds Monitor Table/Grid on mobile */
+    .odds-content {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)) !important;
+        gap: 0.5rem !important;
+        margin-top: 1rem !important;
+    }
+    .odds-card {
+        padding: 0.75rem 0.2rem !important;
+        border-radius: 10px !important;
+    }
+    .odds-card .pattern-names {
+        font-size: 1.1rem !important;
+        margin-bottom: 0.15rem !important;
+        letter-spacing: 0px !important;
+    }
+    .odds-card .odds-value {
+        font-size: 1.25rem !important;
+    }
+    
+    /* 7. Cart / Bet List Card layout on mobile */
+    /* Transform tabular cart rows into neat micro-cards on small screens! */
+    #cart-items-tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    #cart-items-tbody tr {
+        display: flex;
+        flex-direction: column;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 0.85rem;
+        position: relative;
+        gap: 0.4rem;
+    }
+    #cart-items-tbody tr td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: none !important;
+        padding: 0.15rem 0 !important;
+        border-radius: 0 !important;
+        border: none !important;
+        font-size: 0.85rem !important;
+    }
+    #cart-items-tbody tr td:first-child {
+        font-size: 1.1rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        padding-bottom: 0.35rem !important;
+        margin-bottom: 0.25rem !important;
+    }
+    /* Add label prefixes dynamically in card view! */
+    #cart-items-tbody tr td:nth-child(2)::before { content: "式別:"; color: var(--text-muted); font-size: 0.75rem; }
+    #cart-items-tbody tr td:nth-child(3)::before { content: "選手名:"; color: var(--text-muted); font-size: 0.75rem; }
+    #cart-items-tbody tr td:nth-child(4)::before { content: "購入金額:"; color: var(--text-muted); font-size: 0.75rem; }
+    #cart-items-tbody tr td:nth-child(5)::before { content: "想定オッズ:"; color: var(--text-muted); font-size: 0.75rem; }
+    #cart-items-tbody tr td:nth-child(6)::before { content: "想定払戻金:"; color: var(--text-muted); font-size: 0.75rem; }
+    
+    /* Place the delete button in the top right or full width at bottom */
+    #cart-items-tbody tr td:last-child {
+        margin-top: 0.5rem !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+        padding-top: 0.5rem !important;
+        justify-content: flex-end !important;
+    }
+    #cart-items-tbody tr td:last-child button {
+        width: 100% !important;
+        padding: 0.5rem !important;
+        font-size: 0.85rem !important;
+        text-align: center !important;
+    }
+    
+    /* Hide table header in cart card view */
+    #cart-list-section table thead {
+        display: none !important;
+    }
+}
