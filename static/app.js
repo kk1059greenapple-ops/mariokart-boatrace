@@ -505,7 +505,9 @@ function initApp() {
                 const data = snapshot.val() || {};
                 const activeNums = [];
                 Object.keys(data).forEach(num => {
-                    activeNums.push(parseInt(num));
+                    if (data[num] !== null && data[num] !== undefined) {
+                        activeNums.push(parseInt(num));
+                    }
                 });
                 
                 if (adminActiveRacesList) {
