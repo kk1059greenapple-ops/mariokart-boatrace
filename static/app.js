@@ -1491,7 +1491,7 @@ function initApp() {
                     let cells = '';
                     for (let c = 0; c < placesCount; c++) {
                         cells += `<div class="mark-sheet-col col-place">
-                            <button type="button" class="cell-select-btn cell-runner-btn" data-pid="${p.id}" data-boat="${boatNum}" data-col="${c}">ー</button>
+                            <button type="button" class="cell-select-btn cell-runner-btn" data-pid="${p.id}" data-boat="${boatNum}" data-col="${c}">${boatNum}</button>
                         </div>`;
                     }
 
@@ -1553,22 +1553,36 @@ function initApp() {
                 btn.classList.remove('active');
                 selectedMarkCombination[colIdx] = selectedMarkCombination[colIdx].filter(x => x !== pid);
             } else {
-                // 排他選択ルール：同じ着順の列は1人しか選べない（シングルベットのみ）
-                document.querySelectorAll(`.cell-runner-btn[data-col="${colIdx}"]`).forEach(b => {
-                    b.classList.remove('active');
-                });
-                // 他の着順列で同じ選手が選ばれていたら解除する（同じ選手は複数着順に選べない）
-                document.querySelectorAll(`.cell-runner-btn[data-pid="${pid}"]`).forEach(b => {
-                    b.classList.remove('active');
-                });
-                for (let c = 0; c < 3; c++) {
-                    selectedMarkCombination[c] = selectedMarkCombination[c].filter(x => x !== pid);
-                }
-
                 btn.classList.add('active');
-                selectedMarkCombination[colIdx] = [pid];
+                selectedMarkCombination[colIdx].push(pid);
             }
             updateOddsValues();
+        }
+
+        // フォーメーションの有効な組み合わせを生成するヘルパー関数
+        function getValidMarkSheetCombinations(placesCount) {
+            if (allowedBetType === 'two_teams') {
+                if (selectedMarkCombination[0].length > 0) return [[selectedMarkCombination[0][0]]];
+                return [];
+            }
+            
+            const arrays = selectedMarkCombination.slice(0, placesCount);
+            if (arrays.some(a => a.length === 0)) return [];
+            
+            let result = [];
+            const helper = (arr, i) => {
+                if (i === arrays.length) {
+                    result.push(arr);
+                    return;
+                }
+                for (let j = 0; j < arrays[i].length; j++) {
+                    if (!arr.includes(arrays[i][j])) {
+                        helper([...arr, arrays[i][j]], i + 1);
+                    }
+                }
+            };
+            helper([], 0);
+            return result;
         }
 
         // オッズ表示のリアルタイム更新
@@ -1595,40 +1609,52 @@ function initApp() {
                 return;
             }
 
-            if (btnAddCart) btnAddCart.disabled = false;
-
-            // オッズ取得
-            let patternStr = "";
-            let displayStr = "";
-            let oddsVal = 0.0;
-
-            if (allowedBetType === 'two_teams') {
-                const teamVal = selectedMarkCombination[0][0];
-                patternStr = JSON.stringify([teamVal]);
-                displayStr = teamVal === 1 ? '赤チーム (1)' : '青チーム (2)';
-            } else {
-                const pids = selectedMarkCombination.slice(0, placesCount).map(arr => arr[0]);
-                const boatIdxs = pids.map(pid => currentRacePlayers.findIndex(x => x.id === pid) + 1);
-                patternStr = JSON.stringify(pids);
-                displayStr = boatIdxs.join(' - ');
+            const validPatterns = getValidMarkSheetCombinations(placesCount);
+            if (validPatterns.length === 0) {
+                if (valDisplay) valDisplay.textContent = "-";
+                if (patternDisplay) patternDisplay.textContent = "有効な組み合わせがありません（同じ艇番が選択されています）";
+                if (btnAddCart) btnAddCart.disabled = true;
+                return;
             }
 
-            // オッズ計算
-            const pool = currentPools[patternStr] || 0.0;
+            if (btnAddCart) btnAddCart.disabled = false;
+
             const RETURN_RATE = 0.90;
             const addedCarryover = currentCarryoverPool * 0.90;
             
-            if (currentTotalBets > 0 && pool > 0) {
-                oddsVal = ((currentTotalBets * RETURN_RATE) + addedCarryover) / pool;
+            let minOdds = Infinity;
+            let maxOdds = 0;
+
+            validPatterns.forEach(pids => {
+                const patternStr = JSON.stringify(pids);
+                const pool = currentPools[patternStr] || 0.0;
+                let oddsVal = 0.0;
+
+                if (currentTotalBets > 0 && pool > 0) {
+                    oddsVal = ((currentTotalBets * RETURN_RATE) + addedCarryover) / pool;
+                } else {
+                    if (allowedBetType === 'two_teams') {
+                        oddsVal = addedCarryover > 0 ? ((100.0 * RETURN_RATE) + addedCarryover) / 100.0 : 1.8;
+                    } else {
+                        oddsVal = ((100.0 * RETURN_RATE) + addedCarryover) / 100.0;
+                    }
+                }
+                const roundedOdds = Math.round(oddsVal * 10) / 10;
+                if (roundedOdds < minOdds) minOdds = roundedOdds;
+                if (roundedOdds > maxOdds) maxOdds = roundedOdds;
+            });
+
+            let displayStr = "";
+            if (validPatterns.length > 1) {
+                displayStr = `フォーメーション (${validPatterns.length}点)`;
             } else {
                 if (allowedBetType === 'two_teams') {
-                    oddsVal = addedCarryover > 0 ? ((100.0 * RETURN_RATE) + addedCarryover) / 100.0 : 1.8;
+                    displayStr = validPatterns[0][0] === 1 ? '赤チーム (1)' : '青チーム (2)';
                 } else {
-                    oddsVal = ((100.0 * RETURN_RATE) + addedCarryover) / 100.0;
+                    const boatIdxs = validPatterns[0].map(pid => currentRacePlayers.findIndex(x => x.id === pid) + 1);
+                    displayStr = boatIdxs.join(' - ');
                 }
             }
-
-            const roundedOdds = Math.round(oddsVal * 10) / 10;
 
             if (patternDisplay) {
                 if (isOddsHidden) {
@@ -1642,7 +1668,11 @@ function initApp() {
                 if (isOddsHidden) {
                     valDisplay.textContent = "🔒";
                 } else {
-                    valDisplay.textContent = roundedOdds.toFixed(1) + "x";
+                    if (validPatterns.length > 1 && minOdds !== maxOdds) {
+                        valDisplay.textContent = `${minOdds.toFixed(1)}x ~ ${maxOdds.toFixed(1)}x`;
+                    } else {
+                        valDisplay.textContent = `${minOdds.toFixed(1)}x`;
+                    }
                 }
             }
         }
@@ -1663,39 +1693,38 @@ function initApp() {
                     return;
                 }
 
-                // 選択データ
                 const placesCount = (allowedBetType === 'trifecta') ? 3 : ((allowedBetType === 'exacta') ? 2 : 1);
-                let patternStr = "";
-                let displayStr = "";
-                let rawPattern = [];
-
-                if (allowedBetType === 'two_teams') {
-                    const teamVal = selectedMarkCombination[0][0];
-                    rawPattern = [teamVal];
-                    patternStr = JSON.stringify([teamVal]);
-                    displayStr = teamVal === 1 ? '赤チーム' : '青チーム';
-                } else {
-                    const pids = selectedMarkCombination.slice(0, placesCount).map(arr => arr[0]);
-                    rawPattern = pids;
-                    const boatIdxs = pids.map(pid => currentRacePlayers.findIndex(x => x.id === pid) + 1);
-                    patternStr = JSON.stringify(pids);
-                    displayStr = boatIdxs.join(' - ');
+                const validPatterns = getValidMarkSheetCombinations(placesCount);
+                
+                if (validPatterns.length === 0) {
+                    showToast('有効な組み合わせがありません', true);
+                    return;
                 }
 
-                // 重複確認
-                const existIdx = votingCart.findIndex(item => item.display_pattern === displayStr);
-                if (existIdx !== -1) {
-                    votingCart[existIdx].amount += amt;
-                } else {
-                    votingCart.push({
-                        bet_type: allowedBetType,
-                        pattern: rawPattern,
-                        display_pattern: displayStr,
-                        amount: amt
-                    });
-                }
+                validPatterns.forEach(rawPattern => {
+                    let displayStr = "";
+                    if (allowedBetType === 'two_teams') {
+                        displayStr = rawPattern[0] === 1 ? '赤チーム' : '青チーム';
+                    } else {
+                        const boatIdxs = rawPattern.map(pid => currentRacePlayers.findIndex(x => x.id === pid) + 1);
+                        displayStr = boatIdxs.join(' - ');
+                    }
 
-                showToast('マークシートを買い目リストに追加しました！');
+                    // 重複確認
+                    const existIdx = votingCart.findIndex(item => item.display_pattern === displayStr);
+                    if (existIdx !== -1) {
+                        votingCart[existIdx].amount += amt;
+                    } else {
+                        votingCart.push({
+                            bet_type: allowedBetType,
+                            pattern: rawPattern,
+                            display_pattern: displayStr,
+                            amount: amt
+                        });
+                    }
+                });
+
+                showToast(`買い目リストに ${validPatterns.length} 点追加しました！（合計 ${validPatterns.length * amt} G）`);
                 
                 // マークシートクリア
                 selectedMarkCombination = [[], [], []];
