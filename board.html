@@ -279,6 +279,28 @@
             .grid-container { grid-template-columns: 1fr; }
         }
     </style>
+    
+    <!-- Firebase SDK (v8 Compat) -->
+    <script crossorigin src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script crossorigin src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script>
+      // -------------------------------------------------------------
+      // 【重要】ご自身のFirebaseプロジェクトの設定値に書き換えてください！
+      // -------------------------------------------------------------
+      const firebaseConfig = {
+        apiKey: "AIzaSyCfsPYPvLWfc4fTkRyOUaL9VG9ckfnncPE",
+        databaseURL: "https://mariokart-boatrace-default-rtdb.firebaseio.com",
+        authDomain: "mariokart-boatrace.firebaseapp.com",
+        projectId: "mariokart-boatrace",
+        storageBucket: "mariokart-boatrace.firebasestorage.app",
+        messagingSenderId: "290313371969",
+        appId: "1:290313371969:web:adedbcbfe0d830a50061c0"
+      };
+      
+      // Firebase初期化
+      firebase.initializeApp(firebaseConfig);
+      window.db = firebase.database();
+    </script>
 </head>
 <body>
 
@@ -303,7 +325,7 @@
                 </div>
             </div>
             <div style="font-size: 0.9rem; color: var(--text-muted);">
-                ※ この画面は 2 秒ごとに自動更新されます。
+                ※ この画面はリアルタイムで自動更新されます。
             </div>
         </div>
 
@@ -325,118 +347,160 @@
             'two_teams': '2チーム'
         };
 
-        async function fetchBoardData() {
-            try {
-                const res = await fetch('/api/board/bets');
-                if (!res.ok) throw new Error('Network error');
-                const data = await res.json();
-                
-                // Update active races badge
-                if (data.active_races && data.active_races.length > 0) {
-                    activeRacesBadge.textContent = `稼働中: ${data.active_races.sort((a,b)=>a-b).join('R, ')}R`;
-                    activeRacesBadge.style.display = 'block';
-                } else {
-                    activeRacesBadge.textContent = '現在作成されたレースはありません';
-                }
+        // Firebaseリアルタイム監視の開始
+        function initRealtimeBoard() {
+            boardStatusDot.className = 'status-dot';
+            boardStatusText.textContent = '🔄 データベース接続中...';
+            
+            db.ref('/').on('value', snapshot => {
+                try {
+                    const data = snapshot.val() || {};
+                    const state = data.state || {};
+                    const voters = data.voters || {};
+                    const votes = data.votes || {};
+                    const races = data.races || {};
 
-                // Update status banner
-                if (data.reveal) {
-                    boardStatusDot.className = 'status-dot active';
-                    boardStatusText.textContent = '👁️ 全員の投票内容が公開されています！';
-                    boardStatusText.style.color = 'var(--success)';
-                } else {
-                    boardStatusDot.className = 'status-dot hidden';
-                    boardStatusText.textContent = '🙈 投票受付中（買い目・金額は非公開です）';
-                    boardStatusText.style.color = 'var(--warning)';
-                }
-
-                // Render grid
-                if (!data.board_data || data.board_data.length === 0) {
-                    boardGrid.innerHTML = `
-                        <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: var(--text-muted); font-size: 1.2rem; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px;">
-                            登録されている投票者がいません。
-                        </div>
-                    `;
-                    return;
-                }
-
-                boardGrid.innerHTML = data.board_data.map(voter => {
-                    let statusBadgeHtml = '';
-                    let cardClass = 'voter-card';
+                    const reveal = !!state.reveal;
                     
-                    if (voter.has_voted) {
-                        statusBadgeHtml = `<div class="voter-status-badge complete">🟢 投票完了</div>`;
-                        cardClass += data.reveal ? ' revealed' : ' voted';
+                    // アクティブなレース情報を抽出
+                    const activeRaces = [];
+                    Object.keys(races).forEach(raceNum => {
+                        if (races[raceNum].active) {
+                            activeRaces.push(parseInt(raceNum));
+                        }
+                    });
+
+                    // 1. アクティブなレースの表示更新
+                    if (activeRaces.length > 0) {
+                        activeRacesBadge.textContent = `稼働中: ${activeRaces.sort((a,b)=>a-b).join('R, ')}R`;
+                        activeRacesBadge.style.display = 'block';
                     } else {
-                        statusBadgeHtml = `<div class="voter-status-badge waiting">⚪️ 投票待ち</div>`;
+                        activeRacesBadge.textContent = '現在作成されたレースはありません';
                     }
 
-                    let contentHtml = '';
-                    if (voter.has_voted && voter.votes && voter.votes.length > 0) {
-                        const rowsHtml = voter.votes.map(vote => {
-                            const betTypeName = betTypeNames[vote.bet_type] || '未指定';
-                            const patternClass = data.reveal ? 'bet-pattern' : 'bet-pattern masked';
-                            const formattedAmount = data.reveal ? `${vote.amount.toLocaleString()} G` : '***';
-                            const formattedOdds = data.reveal ? `${vote.odds.toFixed(1)}x` : '-';
-                            
-                            return `
-                                <tr>
-                                    <td style="font-weight: bold; color: #fff;">${vote.race_number}R</td>
-                                    <td style="color: var(--text-muted); font-size: 0.85rem;">${betTypeName}</td>
-                                    <td><span class="${patternClass}">${vote.display_pattern}</span></td>
-                                    <td class="bet-amount">${formattedAmount}</td>
-                                    <td class="bet-odds">${formattedOdds}</td>
-                                </tr>
-                            `;
-                        }).join('');
+                    // 2. ステータスバナーの更新
+                    if (reveal) {
+                        boardStatusDot.className = 'status-dot active';
+                        boardStatusText.textContent = '👁️ 全員の投票内容が公開されています！';
+                        boardStatusText.style.color = 'var(--success)';
+                    } else {
+                        boardStatusDot.className = 'status-dot hidden';
+                        boardStatusText.textContent = '🙈 投票受付中（買い目・金額は非公開です）';
+                        boardStatusText.style.color = 'var(--warning)';
+                    }
 
-                        contentHtml = `
-                            <table class="bets-table">
-                                <thead>
+                    // 3. ボードデータの組み立て
+                    const voterIds = Object.keys(voters);
+                    if (voterIds.length === 0) {
+                        boardGrid.innerHTML = `
+                            <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: var(--text-muted); font-size: 1.2rem; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px;">
+                                登録されている投票者がいません。
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    // 投票者ごとの投票を紐付け
+                    const boardDataList = voterIds.map(voterId => {
+                        const v = voters[voterId];
+                        // このユーザーの未確定投票（現在のアクティブレースに対する投票）を抽出
+                        const voterVotes = [];
+                        Object.keys(votes).forEach(voteId => {
+                            const vote = votes[voteId];
+                            if (vote.voter_name === v.name && !vote.is_resolved) {
+                                voterVotes.push(vote);
+                            }
+                        });
+
+                        return {
+                            voter_name: v.name,
+                            has_voted: voterVotes.length > 0,
+                            votes: voterVotes
+                        };
+                    });
+
+                    // レンダリング
+                    boardGrid.innerHTML = boardDataList.map(voter => {
+                        let statusBadgeHtml = '';
+                        let cardClass = 'voter-card';
+                        
+                        if (voter.has_voted) {
+                            statusBadgeHtml = `<div class="voter-status-badge complete">🟢 投票完了</div>`;
+                            cardClass += reveal ? ' revealed' : ' voted';
+                        } else {
+                            statusBadgeHtml = `<div class="voter-status-badge waiting">⚪️ 投票待ち</div>`;
+                        }
+
+                        let contentHtml = '';
+                        if (voter.has_voted && voter.votes && voter.votes.length > 0) {
+                            const rowsHtml = voter.votes.map(vote => {
+                                const betTypeName = betTypeNames[vote.bet_type] || '未指定';
+                                const patternClass = reveal ? 'bet-pattern' : 'bet-pattern masked';
+                                const formattedAmount = reveal ? `${vote.amount.toLocaleString()} G` : '***';
+                                const formattedOdds = reveal ? `${vote.odds.toFixed(1)}x` : '-';
+                                
+                                return `
                                     <tr>
-                                        <th style="width: 15%">R</th>
-                                        <th style="width: 20%">賭け式</th>
-                                        <th style="width: 35%">買い目</th>
-                                        <th style="width: 15%">金額</th>
-                                        <th style="width: 15%">オッズ</th>
+                                        <td style="font-weight: bold; color: #fff;">${vote.race_number}R</td>
+                                        <td style="color: var(--text-muted); font-size: 0.85rem;">${betTypeName}</td>
+                                        <td><span class="${patternClass}">${vote.display_pattern}</span></td>
+                                        <td class="bet-amount">${formattedAmount}</td>
+                                        <td class="bet-odds">${formattedOdds}</td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    ${rowsHtml}
-                                </tbody>
-                            </table>
-                        `;
-                    } else {
-                        contentHtml = `
-                            <div class="no-bets-placeholder">
-                                まだ賭けに参加していません
+                                `;
+                            }).join('');
+
+                            contentHtml = `
+                                <table class="bets-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 15%">R</th>
+                                            <th style="width: 20%">賭け式</th>
+                                            <th style="width: 35%">買い目</th>
+                                            <th style="width: 15%">金額</th>
+                                            <th style="width: 15%">オッズ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${rowsHtml}
+                                    </tbody>
+                                </table>
+                            `;
+                        } else {
+                            contentHtml = `
+                                <div class="no-bets-placeholder">
+                                    まだ賭けに参加していません
+                                </div>
+                            `;
+                        }
+
+                        return `
+                            <div class="${cardClass}">
+                                <div class="voter-header">
+                                    <div class="voter-name">${voter.voter_name}</div>
+                                    ${statusBadgeHtml}
+                                </div>
+                                ${contentHtml}
                             </div>
                         `;
-                    }
+                    }).join('');
 
-                    return `
-                        <div class="${cardClass}">
-                            <div class="voter-header">
-                                <div class="voter-name">${voter.voter_name}</div>
-                                ${statusBadgeHtml}
-                            </div>
-                            ${contentHtml}
-                        </div>
-                    `;
-                }).join('');
-
-            } catch (e) {
-                console.error("Board fetch error:", e);
+                } catch (err) {
+                    console.error("Board render error:", err);
+                    boardStatusDot.className = 'status-dot';
+                    boardStatusText.textContent = '⚠️ レンダリングエラーが発生しました';
+                    boardStatusText.style.color = 'var(--danger)';
+                }
+            }, err => {
+                console.error("Firebase watch error:", err);
                 boardStatusDot.className = 'status-dot';
-                boardStatusText.textContent = '⚠️ サーバーとの接続が切断されました。再接続中...';
+                boardStatusText.textContent = '⚠️ データベースとの接続に失敗しました。';
                 boardStatusText.style.color = 'var(--danger)';
-            }
+            });
         }
 
-        // Auto reload every 2 seconds
-        setInterval(fetchBoardData, 2000);
-        // Initial fetch
-        fetchBoardData();
+        // 初期化実行
+        initRealtimeBoard();
     </script>
 </body>
 </html>

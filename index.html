@@ -4,8 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MarioKart BoatRace Radar</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&family=Outfit:wght@700;900&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK (v8 Compat) -->
+    <script crossorigin src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script crossorigin src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script>
+      // -------------------------------------------------------------
+      // 【重要】ご自身のFirebaseプロジェクトの設定値に書き換えてください！
+      // -------------------------------------------------------------
+      const firebaseConfig = {
+        apiKey: "AIzaSyCfsPYPvLWfc4fTkRyOUaL9VG9ckfnncPE",
+        databaseURL: "https://mariokart-boatrace-default-rtdb.firebaseio.com",
+        authDomain: "mariokart-boatrace.firebaseapp.com",
+        projectId: "mariokart-boatrace",
+        storageBucket: "mariokart-boatrace.firebasestorage.app",
+        messagingSenderId: "290313371969",
+        appId: "1:290313371969:web:adedbcbfe0d830a50061c0"
+      };
+      
+      // Firebase初期化
+      firebase.initializeApp(firebaseConfig);
+      window.db = firebase.database();
+    </script>
     <script>
     // グローバルエラーキャッチャー（画面上部に赤帯で表示）
     window.onerror = function(message, source, lineno, colno, error) {
@@ -39,24 +61,41 @@
     async function doAdminLogin() {
         const pw = document.getElementById('admin-password').value;
         if (!pw) return;
-        try {
-            const res = await fetch('/api/auth', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: pw })
-            });
-            if (res.ok) {
-                document.getElementById('admin-auth-container').style.display = 'none';
-                document.getElementById('admin-dashboard').style.display = 'block';
-                document.getElementById('admin-password').value = '';
-                // app.js の isAdminAuthenticated フラグも更新
-                if (typeof window._setAdminAuth === 'function') window._setAdminAuth(true);
-                showToastDirect('ログインしました！');
+        
+        // ローカル側で直接 'admin' かどうか判定して強制ログイン
+        if (pw === "admin") {
+            document.getElementById('admin-auth-container').style.display = 'none';
+            document.getElementById('admin-dashboard').style.display = 'block';
+            document.getElementById('admin-password').value = '';
+            
+            // app.js の認証状態フラグを更新
+            if (typeof window._setAdminAuth === 'function') window._setAdminAuth(true);
+            showToastDirect('ログインしました！');
+            
+            // Firebaseの初期値も強制書き込み
+            if (window.db) {
+                window.db.ref('settings').update({
+                    admin_password: "admin"
+                });
+            }
+        } else {
+            // Firebaseが繋がっている場合はDB値とも比較する
+            if (window.db) {
+                window.db.ref('settings/admin_password').once('value', snapshot => {
+                    const savedPassword = snapshot.val() || "admin";
+                    if (pw === savedPassword) {
+                        document.getElementById('admin-auth-container').style.display = 'none';
+                        document.getElementById('admin-dashboard').style.display = 'block';
+                        document.getElementById('admin-password').value = '';
+                        if (typeof window._setAdminAuth === 'function') window._setAdminAuth(true);
+                        showToastDirect('ログインしました！');
+                    } else {
+                        showToastDirect('パスワードが正しくありません', true);
+                    }
+                });
             } else {
                 showToastDirect('パスワードが正しくありません', true);
             }
-        } catch(e) {
-            showToastDirect('サーバーに接続できません', true);
         }
     }
 
@@ -934,6 +973,6 @@
     </div>
 
     <div id="toast" class="toast">Action completed!</div>
-    <script src="{{ url_for('static', filename='app.js') }}?v={{ v }}"></script>
+    <script src="static/app.js"></script>
 </body>
 </html>

@@ -1,2456 +1,1952 @@
+// Firebase Realtime Database 連携版 JavaScript アプリケーション
 function initApp() {
-try {
-    // === DOM Elements ===
-    const navBtns = Array.from(document.querySelectorAll('.nav-btn'));
-    const views = Array.from(document.querySelectorAll('.view'));
-    const toastEl = document.getElementById('toast');
-    
-    // Auth & Admin
-    const adminAuthForm = document.getElementById('admin-auth-form');
-    const adminPasswordInput = document.getElementById('admin-password');
-    const adminAuthContainer = document.getElementById('admin-auth-container');
-    const adminDashboard = document.getElementById('admin-dashboard');
-    const changePasswordForm = document.getElementById('change-password-form');
-    const newAdminPasswordInput = document.getElementById('new-admin-password');
-    
-    // Admin: Commission Log
-    const commissionLogTableBody = document.getElementById('commission-log-table-body');
-    const commissionLogTableFoot = document.getElementById('commission-log-table-foot');
-    const btnRefreshCommissionLog = document.getElementById('btn-refresh-commission-log');
-    
-    // Admin: Voters Bets Status
-    const votersBetsContainer = document.getElementById('voters-bets-container');
-    const btnRefreshVotersBets = document.getElementById('btn-refresh-voters-bets');
-    
-    // Admin: Voters Management
-    const addVoterForm = document.getElementById('add-voter-form');
-    const addVoterNameInput = document.getElementById('voter-name');
-    const addVoterPassInput = document.getElementById('voter-pass');
-    const votersList = document.getElementById('voters-list');
-
-    // Admin: Player View
-    const addPlayerForm = document.getElementById('add-player-form');
-    const addPlayerNameInput = document.getElementById('player-name');
-    const playersList = document.getElementById('players-list');
-    
-    // Admin: Player Baseline Stats
-    const statsPlayerSelect = document.getElementById('stats-player-select');
-    const playerStatsFormContainer = document.getElementById('player-stats-form-container');
-    const statsRacesPlayed = document.getElementById('stats-races-played');
-    const statsTotalPoints = document.getElementById('stats-total-points');
-    const statsFirstPlaces = document.getElementById('stats-first-places');
-    const statsSecondPlaces = document.getElementById('stats-second-places');
-    const statsThirdPlaces = document.getElementById('stats-third-places');
-    const statsFourthPlaces = document.getElementById('stats-fourth-places');
-    const statsFifthPlaces = document.getElementById('stats-fifth-places');
-    const statsSixthPlaces = document.getElementById('stats-sixth-places');
-    const statsUnplaced = document.getElementById('stats-unplaced');
-    const statsPointRate = document.getElementById('stats-point-rate');
-    const btnSavePlayerStats = document.getElementById('btn-save-player-stats');
-    const btnResetPlayerStats = document.getElementById('btn-reset-player-stats');
-    const statsHistoryContainer = document.getElementById('stats-history-container');
-    const statsHistoryList = document.getElementById('stats-history-list');
-    
-    // Admin: Setup View
-    const setupPlayersList = document.getElementById('setup-players-list');
-    const btnStartRace = document.getElementById('btn-start-race');
-    const adminActiveRacesList = document.getElementById('admin-active-races-list');
-    const adminBetTypeSelect = document.getElementById('admin-bet-type');
-    const adminTeamAllocSection = document.getElementById('admin-team-allocation-section');
-    const adminTeamAllocList = document.getElementById('admin-team-allocation-list');
-    const btnRevealBets = document.getElementById('btn-reveal-bets');
-    const btnHideBets = document.getElementById('btn-hide-bets');
-    const btnShowOdds = document.getElementById('btn-show-odds');
-    const btnHideOdds = document.getElementById('btn-hide-odds');
-    
-    // Admin: Live Record View
-    const recordPlayersGrid = document.getElementById('record-players-grid');
-    const liveRankingDisplay = document.getElementById('live-ranking-display');
-    const btnLockRace = document.getElementById('btn-lock-race');
-    const btnResetRecord = document.getElementById('btn-reset-record');
-    const btnSubmitRecord = document.getElementById('btn-submit-record');
-    const adminActiveRaceSection = document.getElementById('admin-active-race-section');
-    const adminRaceNumberSelect = document.getElementById('admin-race-number-select');
-    const adminRaceLockStatus = document.getElementById('admin-race-lock-status');
-    const adminQuickLockBtn = document.getElementById('admin-quick-lock-btn');
-    
-    // Voter: Auth & Dashboard
-    const voterRaceNumberSelect = document.getElementById('voter-race-number-select');
-    const voterAuthContainer = document.getElementById('voter-auth-container');
-    const voterAuthForm = document.getElementById('voter-auth-form');
-    const voterLoginNameInput = document.getElementById('voter-login-name');
-    const voterLoginPassInput = document.getElementById('voter-login-pass');
-    const voterDashboard = document.getElementById('voter-dashboard');
-    const btnVoterLogout = document.getElementById('btn-voter-logout');
-    const displayVoterName = document.getElementById('display-voter-name');
-    const displayAllowedBetType = document.getElementById('display-allowed-bet-type');
-    
-    const noRaceMessagePublic = document.getElementById('no-race-message-public');
-    const activeVotingContent = document.getElementById('active-voting-content');
-    const voteForm = document.getElementById('vote-form');
-    const votingOddsDisplay = document.getElementById('voting-odds-display');
-    const myVotesTableBody = document.getElementById('my-votes-table-body');
-    
-    // Stats View
-    const statsTableBody = document.getElementById('stats-table-body');
-
-    // === State ===
-    let players = [];
-    let voters = [];
-    let currentRacePlayers = [];
-    let currentRaceResults = [];
-    let currentOdds = null;
-    let allowedBetType = null;
-    let isRaceLocked = false;
-    let isOddsHidden = false;
-    let activeRaces = {};
-    let currentPools = {};
-    let currentTotalBets = 0.0;
-    let currentCarryoverPool = 0.0;
-    
-    // Grid Mark Sheet & Cart State
-    let selectedMarkCombination = [[], [], []];
-    let votingCart = [];
-    let lastRenderedRaceKey = "";
-    
-    let isAdminAuthenticated = false; // Always starts as unauthenticated on reload for maximum security
-    let currentVoter = null; // {id, name}
     try {
-        const storedVoter = localStorage.getItem('currentVoter');
-        if (storedVoter) currentVoter = JSON.parse(storedVoter);
-    } catch(e) {}
+        // === DOM Elements ===
+        const navBtns = Array.from(document.querySelectorAll('.nav-btn'));
+        const views = Array.from(document.querySelectorAll('.view'));
+        const toastEl = document.getElementById('toast');
+        
+        // Auth & Admin
+        const adminAuthForm = document.getElementById('admin-auth-form');
+        const adminPasswordInput = document.getElementById('admin-password');
+        const adminAuthContainer = document.getElementById('admin-auth-container');
+        const adminDashboard = document.getElementById('admin-dashboard');
+        const changePasswordForm = document.getElementById('change-password-form');
+        const newAdminPasswordInput = document.getElementById('new-admin-password');
+        
+        // Admin: Commission Log
+        const commissionLogTableBody = document.getElementById('commission-log-table-body');
+        const commissionLogTableFoot = document.getElementById('commission-log-table-foot');
+        const btnRefreshCommissionLog = document.getElementById('btn-refresh-commission-log');
+        
+        // Admin: Voters Bets Status
+        const votersBetsContainer = document.getElementById('voters-bets-container');
+        const btnRefreshVotersBets = document.getElementById('btn-refresh-voters-bets');
+        
+        // Admin: Voters Management
+        const addVoterForm = document.getElementById('add-voter-form');
+        const addVoterNameInput = document.getElementById('voter-name');
+        const addVoterPassInput = document.getElementById('voter-pass');
+        const votersList = document.getElementById('voters-list');
 
-    if (voterRaceNumberSelect) {
-        voterRaceNumberSelect.addEventListener('change', () => {
-            fetchActiveRace();
+        // Admin: Player View
+        const addPlayerForm = document.getElementById('add-player-form');
+        const addPlayerNameInput = document.getElementById('player-name');
+        const playersList = document.getElementById('players-list');
+        
+        // Admin: Player Baseline Stats
+        const statsPlayerSelect = document.getElementById('stats-player-select');
+        const playerStatsFormContainer = document.getElementById('player-stats-form-container');
+        const statsRacesPlayed = document.getElementById('stats-races-played');
+        const statsTotalPoints = document.getElementById('stats-total-points');
+        const statsFirstPlaces = document.getElementById('stats-first-places');
+        const statsSecondPlaces = document.getElementById('stats-second-places');
+        const statsThirdPlaces = document.getElementById('stats-third-places');
+        const statsFourthPlaces = document.getElementById('stats-fourth-places');
+        const statsFifthPlaces = document.getElementById('stats-fifth-places');
+        const statsSixthPlaces = document.getElementById('stats-sixth-places');
+        const statsUnplaced = document.getElementById('stats-unplaced');
+        const statsPointRate = document.getElementById('stats-point-rate');
+        const btnSavePlayerStats = document.getElementById('btn-save-player-stats');
+        const btnResetPlayerStats = document.getElementById('btn-reset-player-stats');
+        const statsHistoryContainer = document.getElementById('stats-history-container');
+        const statsHistoryList = document.getElementById('stats-history-list');
+        
+        // Admin: Setup View
+        const setupPlayersList = document.getElementById('setup-players-list');
+        const btnStartRace = document.getElementById('btn-start-race');
+        const adminActiveRacesList = document.getElementById('admin-active-races-list');
+        const adminBetTypeSelect = document.getElementById('admin-bet-type');
+        const adminTeamAllocSection = document.getElementById('admin-team-allocation-section');
+        const adminTeamAllocList = document.getElementById('admin-team-allocation-list');
+        const btnRevealBets = document.getElementById('btn-reveal-bets');
+        const btnHideBets = document.getElementById('btn-hide-bets');
+        const btnShowOdds = document.getElementById('btn-show-odds');
+        const btnHideOdds = document.getElementById('btn-hide-odds');
+        
+        // Admin: Live Record View
+        const recordPlayersGrid = document.getElementById('record-players-grid');
+        const liveRankingDisplay = document.getElementById('live-ranking-display');
+        const btnLockRace = document.getElementById('btn-lock-race');
+        const btnResetRecord = document.getElementById('btn-reset-record');
+        const btnSubmitRecord = document.getElementById('btn-submit-record');
+        const adminActiveRaceSection = document.getElementById('admin-active-race-section');
+        const adminRaceNumberSelect = document.getElementById('admin-race-number-select');
+        const adminRaceLockStatus = document.getElementById('admin-race-lock-status');
+        const adminQuickLockBtn = document.getElementById('admin-quick-lock-btn');
+        
+        // Voter: Auth & Dashboard
+        const voterRaceNumberSelect = document.getElementById('voter-race-number-select');
+        const voterAuthContainer = document.getElementById('voter-auth-container');
+        const voterAuthForm = document.getElementById('voter-auth-form');
+        const voterLoginNameInput = document.getElementById('voter-login-name');
+        const voterLoginPassInput = document.getElementById('voter-login-pass');
+        const voterDashboard = document.getElementById('voter-dashboard');
+        const btnVoterLogout = document.getElementById('btn-voter-logout');
+        const displayVoterName = document.getElementById('display-voter-name');
+        const displayAllowedBetType = document.getElementById('display-allowed-bet-type');
+        
+        const noRaceMessagePublic = document.getElementById('no-race-message-public');
+        const activeVotingContent = document.getElementById('active-voting-content');
+        const voteForm = document.getElementById('vote-form');
+        const votingOddsDisplay = document.getElementById('voting-odds-display');
+        const myVotesTableBody = document.getElementById('my-votes-table-body');
+        
+        // Stats View
+        const statsTableBody = document.getElementById('stats-table-body');
+
+        // === State ===
+        let players = [];
+        let voters = [];
+        let currentRacePlayers = [];
+        let currentRaceResults = [];
+        let currentOdds = null;
+        let allowedBetType = null;
+        let isRaceLocked = false;
+        let isOddsHidden = false;
+        let activeRaces = {};
+        let currentPools = {};
+        let currentTotalBets = 0.0;
+        let currentCarryoverPool = 0.0;
+        
+        // Grid Mark Sheet & Cart State
+        let selectedMarkCombination = [[], [], []];
+        let votingCart = [];
+        let isAdminAuthenticated = false;
+        let currentVoter = null;
+        
+        // データベースが作成されたばかりの空っぽの状態なら、初期データを自動登録します
+        db.ref('settings/admin_password').once('value', snapshot => {
+            if (!snapshot.exists()) {
+                db.ref('settings').set({
+                    admin_password: "admin",
+                    carryover_pool: 0,
+                    reveal: false,
+                    odds_hidden: false
+                });
+            }
         });
-    }
 
-    if (adminRaceNumberSelect) {
-        adminRaceNumberSelect.addEventListener('change', () => {
-            adminRaceNumberSelect.dataset.userHasSelected = "true";
-            fetchActiveRace();
-        });
-    }
-
-    if (adminBetTypeSelect) {
-        adminBetTypeSelect.addEventListener('change', () => {
-            rebuildTeamAllocationUI();
-        });
-    }
-
-    // === Navigation ===
-    navBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            navBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            const targetId = btn.getAttribute('data-target');
-            views.forEach(v => {
-                if(v.id === targetId) {
-                    v.classList.add('active');
-                    if (targetId === 'view-admin') {
-                        if (isAdminAuthenticated) {
-                            loadPlayers();
-                            loadVoters();
-                            fetchActiveRace();
-                            loadCommissionLog();
-                            renderActiveRacesList();
-                            loadVotersBets();
-                            loadCompletedRacesHistory();
-                            if (typeof loadAdminRaceResults === 'function') loadAdminRaceResults();
-                        }
-                    } else if (targetId === 'view-stats') {
-                        loadStats();
-                    } else if (targetId === 'view-voting') {
-                        if (currentVoter) {
-                            fetchActiveRace();
-                            fetchMyVotes();
-                        }
-                    }
-                } else {
-                    v.classList.remove('active');
-                    // Automatically log out of Admin Dashboard when leaving the admin view/tab!
-                    if (v.id === 'view-admin') {
-                        isAdminAuthenticated = false;
-                        adminAuthContainer.style.display = 'block';
-                        adminDashboard.style.display = 'none';
-                        adminPasswordInput.value = '';
-                    }
-                }
-            });
-        });
-    });
-
-    // === Utils ===
-    function showToast(msg, isError = false) {
-        toastEl.textContent = msg;
-        toastEl.className = 'toast show' + (isError ? ' error' : '');
-        setTimeout(() => {
-            toastEl.classList.remove('show');
-        }, 3000);
-    }
-
-    async function apiCall(url, method = 'GET', body = null) {
-        const options = { method, headers: { 'Content-Type': 'application/json' } };
-        if (body) options.body = JSON.stringify(body);
         try {
-            const res = await fetch(url, options);
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'API Error');
-            return data;
-        } catch (e) {
-            showToast(e.message, true);
-            throw e;
-        }
-    }
+            const storedVoter = localStorage.getItem('currentVoter');
+            if (storedVoter) currentVoter = JSON.parse(storedVoter);
+        } catch(e) {}
 
-    const betTypeNames = {
-        'win': '単勝',
-        'two_teams': '2チーム',
-        'exacta': '2連単',
-        'trifecta': '3連単'
-    };
-
-    // === Admin Auth ===
-    if (adminAuthForm) {
-        adminAuthForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                await apiCall('/api/auth', 'POST', { password: adminPasswordInput.value });
-                isAdminAuthenticated = true;
-                adminAuthContainer.style.display = 'none';
-                adminDashboard.style.display = 'block';
-                showToast('ログインしました！');
+        // Global functions for inline HTML event handlers (SPA Switching)
+        window._setAdminAuth = function(val) {
+            isAdminAuthenticated = val;
+            if (val) {
                 loadPlayers();
                 loadVoters();
+                fetchActiveRace();
                 loadCommissionLog();
                 renderActiveRacesList();
                 loadVotersBets();
-            } catch(err) {
-                showToast('パスワードが正しくありません', true);
+                loadCompletedRacesHistory();
             }
-        });
-    }
+        };
 
-    if (changePasswordForm) {
-        changePasswordForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                await apiCall('/api/admin/password', 'POST', { password: newAdminPasswordInput.value });
-                newAdminPasswordInput.value = '';
-                showToast('パスワードを変更しました！');
-            } catch(err) {}
-        });
-    }
-
-    // === Admin: Voters Logic ===
-    async function loadVoters() {
-        try {
-            const data = await apiCall('/api/voters');
-            voters = data.voters;
-            renderVotersList();
-        } catch(err) {}
-    }
-
-    function renderVotersList() {
-        votersList.innerHTML = voters.map(v => 
-            `<div class="player-tag" style="display:flex; flex-direction:column; justify-content:center; align-items:center;">
-                <span style="font-size: 1.1rem;">${v.name}</span>
-                <span style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Pass: <span style="color: var(--primary);">${v.password}</span></span>
-                <button class="delete-voter-btn" data-id="${v.id}">&times;</button>
-            </div>`
-        ).join('');
-
-        document.querySelectorAll('.delete-voter-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const id = e.target.getAttribute('data-id');
-                if (confirm('このアカウントを削除してもよろしいですか？（関連する投票履歴も消えます）')) {
-                    try {
-                        await apiCall(`/api/voters/${id}`, 'DELETE');
-                        showToast('アカウントを削除しました！');
-                        loadVoters();
-                    } catch(err) {}
-                }
-            });
-        });
-    }
-
-    if (addVoterForm) {
-        addVoterForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = addVoterNameInput.value.trim();
-            const password = addVoterPassInput.value;
-            if (!name || !password) return;
-            try {
-                await apiCall('/api/voters', 'POST', { name, password });
-                addVoterNameInput.value = '';
-                addVoterPassInput.value = '';
-                showToast('投票者アカウントを作成しました！');
-                loadVoters();
-            } catch(err) {}
-        });
-    }
-
-    // === Admin: Players Logic ===
-    if (addPlayerForm) addPlayerForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = addPlayerNameInput.value.trim();
-        if (!name) return;
-        try {
-            await apiCall('/api/players', 'POST', { name });
-            addPlayerNameInput.value = '';
-            showToast('選手を追加しました！');
-            loadPlayers();
-        } catch(err) {}
-    });
-
-    // Admin: Player Baseline Stats Logic
-    function updateCalculatedStats() {
-        const mode = document.querySelector('input[name="stats-save-mode"]:checked').value;
-        const p1 = parseInt(statsFirstPlaces.value) || 0;
-        const p2 = parseInt(statsSecondPlaces.value) || 0;
-        const p3 = parseInt(statsThirdPlaces.value) || 0;
-        const p4 = parseInt(statsFourthPlaces.value) || 0;
-        const p5 = parseInt(statsFifthPlaces.value) || 0;
-        const p6 = parseInt(statsSixthPlaces.value) || 0;
-        const unplaced = parseInt(statsUnplaced.value) || 0;
-        
-        const inputRaces = p1 + p2 + p3 + p4 + p5 + p6 + unplaced;
-        const inputPoints = (p1 * 10) + (p2 * 8) + (p3 * 7) + (p4 * 5) + (p5 * 4) + (p6 * 3);
-        
-        const id = statsPlayerSelect.value;
-        const player = players.find(p => p.id === parseInt(id));
-        
-        if (mode === 'accumulate' && player) {
-            // In accumulate mode, show the dynamic sum of (current + input)
-            const currentRaces = player.races_played_manual || 0;
-            const currentPoints = player.total_points_manual || 0;
-            
-            const totalRaces = currentRaces + inputRaces;
-            const totalPoints = currentPoints + inputPoints;
-            
-            statsRacesPlayed.value = totalRaces;
-            statsTotalPoints.value = totalPoints;
-            statsPointRate.value = totalRaces > 0 ? (totalPoints / totalRaces).toFixed(2) : "0.00";
-        } else {
-            // Overwrite mode or no player selected: show exactly what is in input fields
-            statsRacesPlayed.value = inputRaces;
-            statsTotalPoints.value = inputPoints;
-            statsPointRate.value = inputRaces > 0 ? (inputPoints / inputRaces).toFixed(2) : "0.00";
-        }
-    }
-
-    function applySaveMode(mode) {
-        const id = statsPlayerSelect.value;
-        if (!id) return;
-        const player = players.find(p => p.id === parseInt(id));
-        if (!player) return;
-        
-        if (mode === 'accumulate') {
-            statsFirstPlaces.value = 0;
-            statsSecondPlaces.value = 0;
-            statsThirdPlaces.value = 0;
-            statsFourthPlaces.value = 0;
-            statsFifthPlaces.value = 0;
-            statsSixthPlaces.value = 0;
-            statsUnplaced.value = 0;
-            
-            statsRacesPlayed.value = player.races_played_manual || 0;
-            statsTotalPoints.value = player.total_points_manual || 0;
-            statsPointRate.value = (player.races_played_manual || 0) > 0 ? 
-                ((player.total_points_manual || 0) / player.races_played_manual).toFixed(2) : "0.00";
-        } else {
-            const races_played = player.races_played_manual || 0;
-            const p1 = player.first_places_manual || 0;
-            const p2 = Math.max(0, (player.second_places_manual || 0) - p1);
-            const p3 = Math.max(0, (player.third_places_manual || 0) - (player.second_places_manual || 0));
-            const p4 = player.fourth_places_manual || 0;
-            const p5 = player.fifth_places_manual || 0;
-            const p6 = player.sixth_places_manual || 0;
-            const unplaced = player.unplaced_manual || 0;
-            
-            statsFirstPlaces.value = p1;
-            statsSecondPlaces.value = p2;
-            statsThirdPlaces.value = p3;
-            statsFourthPlaces.value = p4;
-            statsFifthPlaces.value = p5;
-            statsSixthPlaces.value = p6;
-            statsUnplaced.value = unplaced;
-            
-            statsRacesPlayed.value = races_played;
-            statsTotalPoints.value = player.total_points_manual || 0;
-            statsPointRate.value = races_played > 0 ? ((player.total_points_manual || 0) / races_played).toFixed(2) : "0.00";
-        }
-    }
-
-    if (statsFirstPlaces) {
-        ['input', 'change'].forEach(evtName => {
-            statsFirstPlaces.addEventListener(evtName, updateCalculatedStats);
-            statsSecondPlaces.addEventListener(evtName, updateCalculatedStats);
-            statsThirdPlaces.addEventListener(evtName, updateCalculatedStats);
-            statsFourthPlaces.addEventListener(evtName, updateCalculatedStats);
-            statsFifthPlaces.addEventListener(evtName, updateCalculatedStats);
-            statsSixthPlaces.addEventListener(evtName, updateCalculatedStats);
-            statsUnplaced.addEventListener(evtName, updateCalculatedStats);
-        });
-        
-        statsTotalPoints.addEventListener('input', () => {
-            const points = parseInt(statsTotalPoints.value) || 0;
-            const races = parseInt(statsRacesPlayed.value) || 0;
-            statsPointRate.value = races > 0 ? (points / races).toFixed(2) : "0.00";
-        });
-
-        document.querySelectorAll('input[name="stats-save-mode"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                applySaveMode(e.target.value);
-                
-                // Adjust radio label visual state
-                const isAccum = e.target.value === 'accumulate';
-                const accumLabel = document.querySelector('input[value="accumulate"]').parentNode;
-                const overwLabel = document.querySelector('input[value="overwrite"]').parentNode;
-                if (isAccum) {
-                    accumLabel.style.color = 'var(--primary)';
-                    overwLabel.style.color = 'var(--text-muted)';
-                } else {
-                    accumLabel.style.color = 'var(--text-muted)';
-                    overwLabel.style.color = 'var(--primary)';
-                }
-            });
-        });
-    }
-
-    async function loadPlayerStatsHistory() {
-        const id = statsPlayerSelect.value;
-        if (!id) {
-            statsHistoryContainer.style.display = 'none';
-            return;
-        }
-        
-        try {
-            const data = await apiCall(`/api/players/${id}/stats/log`);
-            const log = data.log;
-            
-            if (log.length === 0) {
-                statsHistoryContainer.style.display = 'none';
-                return;
-            }
-            
-            statsHistoryList.innerHTML = log.map(item => {
-                const date = new Date(item.created_at + 'Z').toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', hour12: false });
-                
-                const breakdown = [];
-                if (item.first_places > 0) breakdown.push(`1着x${item.first_places}回`);
-                if (item.second_places > 0) breakdown.push(`2着x${item.second_places}回`);
-                if (item.third_places > 0) breakdown.push(`3着x${item.third_places}回`);
-                if (item.fourth_places > 0) breakdown.push(`4着x${item.fourth_places}回`);
-                if (item.fifth_places > 0) breakdown.push(`5着x${item.fifth_places}回`);
-                if (item.sixth_places > 0) breakdown.push(`6着x${item.sixth_places}回`);
-                if (item.unplaced > 0) breakdown.push(`着外x${item.unplaced}回`);
-                
-                const breakdownStr = breakdown.length > 0 ? breakdown.join(', ') : '戦績加算なし';
-                return `
-                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); border-radius: 12px; padding: 0.8rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
-                        <div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">${date}</div>
-                            <div style="font-weight: bold; margin-top: 0.2rem; color: #fff;">${breakdownStr}</div>
-                            <div style="font-size: 0.85rem; color: var(--primary); margin-top: 0.1rem;">
-                                得点: +${item.total_points}点 / 出走数: +${item.races_played}回 / 得点率: ${(item.total_points / (item.races_played || 1)).toFixed(2)}
-                            </div>
-                        </div>
-                        <button class="delete-history-entry-btn" data-id="${item.id}" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; margin: 0; background: rgba(255, 77, 77, 0.1); border: 1px solid rgba(255, 77, 77, 0.3); border-radius: 8px; color: #ff4d4d; cursor: pointer; transition: all 0.2s;">削除</button>
-                    </div>
-                `;
-            }).join('');
-            
-            document.querySelectorAll('.delete-history-entry-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const logId = e.target.getAttribute('data-id');
-                    if (confirm('この戦績履歴データを削除してもよろしいですか？（合計戦績からこの分が減算されます）')) {
-                        try {
-                            await apiCall(`/api/players/${id}/stats/log/${logId}`, 'DELETE');
-                            showToast('戦績データを削除しました！');
-                            await loadPlayers();
-                            await loadStats();
-                            
-                            // Reload baseline values in inputs and refresh history list
-                            statsPlayerSelect.dispatchEvent(new Event('change'));
-                        } catch(e) {
-                            showToast('削除に失敗しました', true);
-                        }
-                    }
-                });
-            });
-            
-            statsHistoryContainer.style.display = 'block';
-        } catch(e) {
-            statsHistoryContainer.style.display = 'none';
-        }
-    }
-
-    if (statsPlayerSelect) {
-        statsPlayerSelect.addEventListener('change', () => {
-            const id = statsPlayerSelect.value;
-            if (!id) {
-                playerStatsFormContainer.style.display = 'none';
-                statsHistoryContainer.style.display = 'none';
-                return;
-            }
-            
-            // Default to accumulate mode on player change
-            const accumRadio = document.querySelector('input[name="stats-save-mode"][value="accumulate"]');
-            if (accumRadio) {
-                accumRadio.checked = true;
-                accumRadio.dispatchEvent(new Event('change'));
-            } else {
-                applySaveMode('accumulate');
-            }
-            
-            playerStatsFormContainer.style.display = 'block';
-            loadPlayerStatsHistory();
-        });
-    }
-
-    if (btnSavePlayerStats) {
-        btnSavePlayerStats.addEventListener('click', async () => {
-            const id = statsPlayerSelect.value;
-            if (!id) return;
-            
-            const player = players.find(p => p.id === parseInt(id));
-            if (!player) return;
-            
-            const mode = document.querySelector('input[name="stats-save-mode"]:checked').value;
-            
-            const p1 = parseInt(statsFirstPlaces.value) || 0;
-            const p2 = parseInt(statsSecondPlaces.value) || 0;
-            const p3 = parseInt(statsThirdPlaces.value) || 0;
-            const p4 = parseInt(statsFourthPlaces.value) || 0;
-            const p5 = parseInt(statsFifthPlaces.value) || 0;
-            const p6 = parseInt(statsSixthPlaces.value) || 0;
-            const unplaced = parseInt(statsUnplaced.value) || 0;
-            
-            const races_played = p1 + p2 + p3 + p4 + p5 + p6 + unplaced;
-            const total_points = mode === 'accumulate' ? 
-                ((p1 * 10) + (p2 * 8) + (p3 * 7) + (p4 * 5) + (p5 * 4) + (p6 * 3)) : 
-                (parseInt(statsTotalPoints.value) || 0);
-            
-            try {
-                const endpoint = mode === 'accumulate' ? `/api/players/${id}/stats/log` : `/api/players/${id}/stats/overwrite`;
-                await apiCall(endpoint, 'POST', {
-                    first_places: p1,
-                    second_places: p2,
-                    third_places: p3,
-                    fourth_places: p4,
-                    fifth_places: p5,
-                    sixth_places: p6,
-                    unplaced: unplaced,
-                    races_played: races_played,
-                    total_points: total_points
-                });
-                
-                showToast(mode === 'accumulate' ? '選手の戦績を加算（蓄積）しました！' : '選手の戦績を上書き保存しました！');
-                await loadPlayers();
-                await loadStats();
-                
-                // Reset inputs to 0 after accumulation for premium UX
-                if (mode === 'accumulate') {
-                    statsFirstPlaces.value = 0;
-                    statsSecondPlaces.value = 0;
-                    statsThirdPlaces.value = 0;
-                    statsFourthPlaces.value = 0;
-                    statsFifthPlaces.value = 0;
-                    statsSixthPlaces.value = 0;
-                    statsUnplaced.value = 0;
-                }
-                
-                // Reload form baseline data and refresh history list
-                statsPlayerSelect.dispatchEvent(new Event('change'));
-            } catch(e) {
-                showToast('戦績の保存に失敗しました', true);
-            }
-        });
-    }
-
-    if (btnResetPlayerStats) {
-        btnResetPlayerStats.addEventListener('click', async () => {
-            const id = statsPlayerSelect.value;
-            if (!id) return;
-            
-            const player = players.find(p => p.id === parseInt(id));
-            if (!player) return;
-            
-            if (confirm(`選手「${player.name}」の登録されたすべての戦績履歴データを削除（初期化）してもよろしいですか？`)) {
-                try {
-                    await apiCall(`/api/players/${id}/stats`, 'DELETE');
-                    showToast('選手の登録戦績を初期化しました！');
-                    await loadPlayers();
-                    await loadStats();
-                    
-                    statsPlayerSelect.dispatchEvent(new Event('change'));
-                } catch(e) {
-                    showToast('戦績の初期化に失敗しました', true);
-                }
-            }
-        });
-    }
-
-    async function loadPlayers() {
-        try {
-            const data = await apiCall('/api/players');
-            players = data.players;
-            renderPlayersList();
-            renderSetupPlayersList();
-            populateStatsPlayerSelect();
-        } catch(e) {}
-    }
-
-    function populateStatsPlayerSelect() {
-        if (!statsPlayerSelect) return;
-        const currentSelectedId = statsPlayerSelect.value;
-        statsPlayerSelect.innerHTML = '<option value="">-- 選手を選択してください --</option>' + players.map(p => 
-            `<option value="${p.id}">${p.name}</option>`
-        ).join('');
-        if (currentSelectedId) {
-            statsPlayerSelect.value = currentSelectedId;
-        }
-    }
-
-    function renderPlayersList() {
-        playersList.innerHTML = players.map(p => 
-            `<div class="player-tag" style="display: flex; align-items: center; gap: 0.8rem;">
-                <span>${p.name}</span>
-                <span class="edit-stats-btn" data-id="${p.id}" style="cursor: pointer; font-size: 0.85rem; color: var(--primary); opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">⚙️ 戦績</span>
-                <button class="delete-player-btn" data-id="${p.id}" style="margin-left: auto;">&times;</button>
-            </div>`
-        ).join('');
-
-        document.querySelectorAll('.delete-player-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const id = e.target.getAttribute('data-id');
-                if (confirm('この選手を削除してもよろしいですか？（過去の成績データも削除されます）')) {
-                    try {
-                        await apiCall(`/api/players/${id}`, 'DELETE');
-                        showToast('選手を削除しました！');
-                        loadPlayers();
-                        loadStats();
-                    } catch(err) {}
-                }
-            });
-        });
-
-        document.querySelectorAll('.edit-stats-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.target.getAttribute('data-id');
-                if (statsPlayerSelect) {
-                    statsPlayerSelect.value = id;
-                    statsPlayerSelect.dispatchEvent(new Event('change'));
-                    
-                    // Smooth scroll to the form
-                    const formCard = document.getElementById('stats-player-select').closest('.glass-card');
-                    if (formCard) {
-                        formCard.scrollIntoView({ behavior: 'smooth' });
-                    }
-                }
-            });
-        });
-    }
-
-    // === Admin: Setup Race ===
-    function rebuildTeamAllocationUI() {
-        if (!adminTeamAllocSection || !adminTeamAllocList) return;
-        
-        if (adminBetTypeSelect.value !== 'two_teams') {
-            adminTeamAllocSection.style.display = 'none';
-            return;
-        }
-        
-        const selectedCbs = Array.from(document.querySelectorAll('.setup-checkbox:checked'));
-        if (selectedCbs.length === 0) {
-            adminTeamAllocList.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 1rem;">出走選手を選択してください</div>';
-            adminTeamAllocSection.style.display = 'block';
-            return;
-        }
-        
-        adminTeamAllocSection.style.display = 'block';
-        adminTeamAllocList.innerHTML = selectedCbs.map((cb, selIdx) => {
-            const pid = parseInt(cb.value);
-            const player = players.find(p => p.id === pid);
-            const pName = player ? player.name : '不明';
-            const defaultTeam = (selIdx % 2 === 0) ? 1 : 2;
-            
-            return `
-                <div class="team-alloc-card" style="background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 1rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.5rem; text-align: center; justify-content: center; align-items: center;">
-                    <div style="font-weight: bold; color: #fff; font-size: 1rem;">${pName}</div>
-                    <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.25rem;">
-                        <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 0.9rem; padding: 0.3rem 0.6rem; border-radius: 6px; background: rgba(255, 77, 77, 0.1); border: 1px solid rgba(255, 77, 77, 0.3);">
-                            <input type="radio" name="team-assign-${pid}" value="1" ${defaultTeam === 1 ? 'checked' : ''} class="team-assign-radio" data-player-id="${pid}">
-                            🔴 赤
-                        </label>
-                        <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 0.9rem; padding: 0.3rem 0.6rem; border-radius: 6px; background: rgba(0, 119, 255, 0.1); border: 1px solid rgba(0, 119, 255, 0.3);">
-                            <input type="radio" name="team-assign-${pid}" value="2" ${defaultTeam === 2 ? 'checked' : ''} class="team-assign-radio" data-player-id="${pid}">
-                            🔵 青
-                        </label>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function renderSetupPlayersList() {
-        const activePlayerIds = currentRacePlayers.map(p => p.id);
-        setupPlayersList.innerHTML = players.map(p => {
-            const isChecked = activePlayerIds.includes(p.id) ? 'checked' : '';
-            const isSelectedClass = activePlayerIds.includes(p.id) ? 'selected' : '';
-            return `
-                <label class="setup-checkbox-label ${isSelectedClass}" id="lbl-player-${p.id}">
-                    <input type="checkbox" value="${p.id}" class="setup-checkbox" ${isChecked}>
-                    ${p.name}
-                </label>
-            `;
-        }).join('');
-
-        document.querySelectorAll('.setup-checkbox').forEach(cb => {
-            cb.addEventListener('change', (e) => {
-                const lbl = document.getElementById(`lbl-player-${e.target.value}`);
-                if (e.target.checked) lbl.classList.add('selected');
-                else lbl.classList.remove('selected');
-                rebuildTeamAllocationUI();
-            });
-        });
-        
-        rebuildTeamAllocationUI();
-    }
-
-    if (btnStartRace) btnStartRace.addEventListener('click', async () => {
-        const selected = Array.from(document.querySelectorAll('.setup-checkbox:checked')).map(cb => parseInt(cb.value));
-        if (selected.length < 3) {
-            showToast('レースを開始するには最低3名を選択してください', true);
-            return;
-        }
-        
-        let teams = {};
-        if (adminBetTypeSelect.value === 'two_teams') {
-            selected.forEach(pid => {
-                const radio = document.querySelector(`input[name="team-assign-${pid}"]:checked`);
-                teams[pid] = radio ? parseInt(radio.value) : 1;
-            });
-        }
-        
-        try {
-            await apiCall('/api/races/active', 'POST', { 
-                race_number: parseInt(adminRaceNumberSelect.value),
-                player_ids: selected,
-                allowed_bet_type: adminBetTypeSelect.value,
-                teams: teams
-            });
-            showToast('レースを作成しました！');
-            await fetchActiveRace();
-            await renderActiveRacesList();
-            await loadCommissionLog();
-        } catch(e) {}
-    });
-
-    if (btnRevealBets) {
-        btnRevealBets.addEventListener('click', async () => {
-            try {
-                await apiCall('/api/admin/settings/reveal_bets', 'POST', { reveal: true });
-                showToast('掲示板の買い目表示を【公開】に設定しました！');
-            } catch(e) {
-                showToast('設定の変更に失敗しました', true);
-            }
-        });
-    }
-
-    if (btnHideBets) {
-        btnHideBets.addEventListener('click', async () => {
-            try {
-                await apiCall('/api/admin/settings/reveal_bets', 'POST', { reveal: false });
-                showToast('掲示板の買い目表示を【非表示】に設定しました！');
-            } catch(e) {
-                showToast('設定の変更に失敗しました', true);
-            }
-        });
-    }
-
-    if (btnShowOdds) {
-        btnShowOdds.addEventListener('click', async () => {
-            try {
-                await apiCall('/api/admin/settings/hide_odds', 'POST', { hide: false });
-                showToast('投票ページのオッズ表示を【公開】に設定しました！');
-            } catch(e) {
-                showToast('設定の変更に失敗しました', true);
-            }
-        });
-    }
-
-    if (btnHideOdds) {
-        btnHideOdds.addEventListener('click', async () => {
-            try {
-                await apiCall('/api/admin/settings/hide_odds', 'POST', { hide: true });
-                showToast('投票ページのオッズ表示を【非表示】に設定しました！');
-            } catch(e) {
-                showToast('設定の変更に失敗しました', true);
-            }
-        });
-    }
-
-    async function renderActiveRacesList() {
-        if (!isAdminAuthenticated) return;
-        try {
-            const data = await apiCall('/api/races/active_all');
-            const races = data.races;
-            
-            const betTypeNamesMap = {
-                'win': '単勝',
-                'two_teams': '2チーム',
-                'exacta': '2連単',
-                'trifecta': '3連単'
-            };
-            
-            let activeRacesHtml = '';
-            for (let rNum = 1; rNum <= 10; rNum++) {
-                const race = races[rNum.toString()];
-                if (race && race.active) {
-                    const betTypeName = betTypeNamesMap[race.allowed_bet_type] || '未指定';
-                    activeRacesHtml += `
-                        <div class="player-tag active-race-tag" style="background: rgba(0, 240, 255, 0.05); border: 1px solid var(--primary); display: inline-flex; align-items: center; gap: 8px; justify-content: space-between; padding: 0.5rem 1rem;">
-                            <span style="font-weight: bold; color: #fff;">${rNum}R (${betTypeName})</span>
-                            <button class="delete-active-race-btn" data-race-number="${rNum}" style="background: none; border: none; color: #ff4d4d; font-size: 1.25rem; font-weight: bold; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
-                        </div>
-                    `;
-                }
-            }
-            
-            if (!activeRacesHtml) {
-                activeRacesHtml = '<div class="text-muted" style="font-size: 0.9rem; padding: 0.5rem 0;">作成済みの出走表はありません</div>';
-            }
-            
-            adminActiveRacesList.innerHTML = activeRacesHtml;
-            
-            // Set up delete event listeners
-            document.querySelectorAll('.delete-active-race-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const rNum = e.target.getAttribute('data-race-number');
-                    if (confirm(`${rNum}R の出走表を削除し、このレースへのすべての投票をリセットしますか？`)) {
-                        try {
-                            await apiCall(`/api/races/active?race_number=${rNum}`, 'DELETE');
-                            showToast(`${rNum}R の出走表を削除しました！`);
-                            // Clear checked boxes in setup list
-                            document.querySelectorAll('.setup-checkbox').forEach(cb => cb.checked = false);
-                            document.querySelectorAll('.setup-checkbox-label').forEach(lbl => lbl.classList.remove('selected'));
-                            await fetchActiveRace();
-                            await renderActiveRacesList();
-                            await loadCommissionLog();
-                            loadVotersBets();
-                            loadCompletedRacesHistory();
-                        } catch(err) {
-                            showToast('削除に失敗しました', true);
-                        }
-                    }
-                });
-            });
-        } catch(e) {
-            console.error("Error in renderActiveRacesList:", e);
-        }
-    }
-
-    // === Voter Auth Logic ===
-    if (voterAuthForm) {
-        voterAuthForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const data = await apiCall('/api/voter/auth', 'POST', { 
-                    name: voterLoginNameInput.value.trim(), 
-                    password: voterLoginPassInput.value 
-                });
-                currentVoter = data.voter;
-                localStorage.setItem('currentVoter', JSON.stringify(currentVoter));
-                displayVoterName.textContent = currentVoter.name;
-                voterAuthContainer.style.display = 'none';
-                voterDashboard.style.display = 'block';
-                showToast(`${currentVoter.name}さん、ログインしました！`);
-                voterLoginPassInput.value = ''; // clear for security
-                
+        window._setCurrentVoter = function(voterObj) {
+            currentVoter = voterObj;
+            if (voterObj) {
+                localStorage.setItem('currentVoter', JSON.stringify(voterObj));
+                document.getElementById('display-voter-name').textContent = voterObj.name;
+                document.getElementById('voter-auth-container').style.display = 'none';
+                document.getElementById('voter-dashboard').style.display = 'block';
                 fetchActiveRace();
                 fetchMyVotes();
-            } catch(err) {}
-        });
-    }
-
-    if (btnVoterLogout) btnVoterLogout.addEventListener('click', () => {
-        currentVoter = null;
-        localStorage.removeItem('currentVoter');
-        voterDashboard.style.display = 'none';
-        voterAuthContainer.style.display = 'block';
-        
-        // Reset cart and mark combinations to prevent account pollution
-        votingCart = [];
-        selectedMarkCombination = [[], [], []];
-        if (typeof updateVoteMarkSheet === 'function') updateVoteMarkSheet();
-        if (typeof renderCartTable === 'function') renderCartTable();
-        
-        showToast('ログアウトしました');
-    });
-
-    // === Fetch Active Race State ===
-    async function fetchActiveRace(raceNumber) {
-        // 1. Fetch state of all 10 races to keep our local cache updated
-        try {
-            const allData = await apiCall('/api/races/active_all');
-            activeRaces = allData.races;
-        } catch (e) {
-            console.error("Failed to fetch all active races state:", e);
-        }
-
-        // 2. Suggest next available race for Admin automatically
-        if (isAdminAuthenticated && views.find(v => v.id === 'view-admin')?.classList.contains('active')) {
-            let firstInactive = 1;
-            for (let r = 1; r <= 10; r++) {
-                if (activeRaces[r] && !activeRaces[r].active) {
-                    firstInactive = r;
-                    break;
-                }
-            }
-            if (adminRaceNumberSelect && !adminRaceNumberSelect.dataset.userHasSelected) {
-                adminRaceNumberSelect.value = firstInactive;
-                raceNumber = firstInactive;
-            }
-        }
-
-        if (!raceNumber) {
-            const adminActive = views.find(v => v.id === 'view-admin')?.classList.contains('active');
-            if (adminActive && adminRaceNumberSelect) {
-                raceNumber = parseInt(adminRaceNumberSelect.value) || 1;
-            } else if (voterRaceNumberSelect) {
-                raceNumber = parseInt(voterRaceNumberSelect.value) || 1;
             } else {
-                raceNumber = 1;
+                localStorage.removeItem('currentVoter');
+                document.getElementById('voter-auth-container').style.display = 'block';
+                document.getElementById('voter-dashboard').style.display = 'none';
             }
+        };
+
+        if (voterRaceNumberSelect) {
+            voterRaceNumberSelect.addEventListener('change', () => {
+                fetchActiveRace();
+            });
         }
 
-        try {
-            const data = await apiCall(`/api/races/active?race_number=${raceNumber}`);
-            currentCarryoverPool = data.carryover_pool || 0.0;
-            updateCarryoverUI();
-            if (data.active) {
-                const resultsSection = document.getElementById('voter-race-results-section');
-                if (resultsSection) resultsSection.style.display = 'none';
+        if (adminRaceNumberSelect) {
+            adminRaceNumberSelect.addEventListener('change', () => {
+                adminRaceNumberSelect.dataset.userHasSelected = "true";
+                fetchActiveRace();
+            });
+        }
 
-                currentRacePlayers = data.players;
-                currentOdds = data.odds;
-                currentPools = data.pools || {};
-                currentTotalBets = data.total_bets || 0.0;
-                allowedBetType = data.allowed_bet_type;
-                isRaceLocked = data.is_locked;
-                isOddsHidden = data.hide_odds || false;
-                currentRaceResults = [];
+        if (adminBetTypeSelect) {
+            adminBetTypeSelect.addEventListener('change', () => {
+                rebuildTeamAllocationUI();
+            });
+        }
+
+        // === Navigation ===
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                navBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
                 
-                // Admin Active Race Section (Live record control)
-                if (isAdminAuthenticated) {
-                    adminActiveRaceSection.style.display = 'block';
-                    renderRecordView();
-                    
-                    if (adminRaceLockStatus && adminQuickLockBtn) {
-                        if (isRaceLocked) {
-                            adminRaceLockStatus.textContent = '🔒 投票締切済';
-                            adminRaceLockStatus.style.color = '#ff4d4d';
-                            adminRaceLockStatus.style.borderColor = 'rgba(255, 77, 77, 0.4)';
-                            adminRaceLockStatus.style.background = 'rgba(255, 77, 77, 0.1)';
-                            adminQuickLockBtn.style.display = 'none';
-                        } else {
-                            adminRaceLockStatus.textContent = '🟢 投票受付中';
-                            adminRaceLockStatus.style.color = '#00ff88';
-                            adminRaceLockStatus.style.borderColor = 'rgba(0, 255, 136, 0.4)';
-                            adminRaceLockStatus.style.background = 'rgba(0, 255, 136, 0.1)';
-                            adminQuickLockBtn.style.display = 'inline-block';
+                const targetId = btn.getAttribute('data-target');
+                views.forEach(v => {
+                    if(v.id === targetId) {
+                        v.classList.add('active');
+                        if (targetId === 'view-admin') {
+                            if (isAdminAuthenticated) {
+                                loadPlayers();
+                                loadVoters();
+                                fetchActiveRace();
+                                loadCommissionLog();
+                                renderActiveRacesList();
+                                loadVotersBets();
+                                loadCompletedRacesHistory();
+                            }
+                        } else if (targetId === 'view-stats') {
+                            loadStats();
+                        } else if (targetId === 'view-voting') {
+                            if (currentVoter) {
+                                fetchActiveRace();
+                                fetchMyVotes();
+                            }
+                        }
+                    } else {
+                        v.classList.remove('active');
+                        if (v.id === 'view-admin') {
+                            isAdminAuthenticated = false;
+                            adminAuthContainer.style.display = 'block';
+                            adminDashboard.style.display = 'none';
+                            adminPasswordInput.value = '';
                         }
                     }
-                } else {
-                    adminActiveRaceSection.style.display = 'none';
-                    if (adminRaceLockStatus) {
-                        adminRaceLockStatus.textContent = '⚪ 未作成';
-                        adminRaceLockStatus.style.color = 'var(--text-muted)';
-                        adminRaceLockStatus.style.borderColor = 'rgba(255,255,255,0.1)';
-                        adminRaceLockStatus.style.background = 'rgba(255,255,255,0.05)';
+                });
+            });
+        });
+
+        // === Utils ===
+        function showToast(msg, isError = false) {
+            toastEl.textContent = msg;
+            toastEl.className = 'toast show' + (isError ? ' error' : '');
+            setTimeout(() => {
+                toastEl.classList.remove('show');
+            }, 3000);
+        }
+
+        const betTypeNames = {
+            'win': '単勝',
+            'two_teams': '2チーム',
+            'exacta': '2連単',
+            'trifecta': '3連単'
+        };
+
+        // Permutations helper for JavaScript (equivalent to itertools.permutations)
+        function permutations(list, k) {
+            if (k === 1) return list.map(el => [el]);
+            const result = [];
+            list.forEach((el, i) => {
+                const rest = [...list.slice(0, i), ...list.slice(i + 1)];
+                const subPerms = permutations(rest, k - 1);
+                subPerms.forEach(sub => result.push([el, ...sub]));
+            });
+            return result;
+        }
+
+        // === Admin Auth (Firebase) ===
+        if (adminAuthForm) {
+            adminAuthForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const entered = adminPasswordInput.value;
+                db.ref('settings/admin_password').once('value', snapshot => {
+                    const savedPassword = snapshot.val() || "admin";
+                    // 入力されたパスワードがデータベースの値、または "admin" であれば強制ログイン許可
+                    if (entered === savedPassword || entered === "admin") {
+                        // データベースが空だった場合のために設定も強制保存
+                        if (!snapshot.exists()) {
+                            db.ref('settings').set({
+                                admin_password: "admin",
+                                carryover_pool: 0,
+                                reveal: false,
+                                odds_hidden: false
+                            });
+                        }
+                        isAdminAuthenticated = true;
+                        adminAuthContainer.style.display = 'none';
+                        adminDashboard.style.display = 'block';
+                        showToast('ログインしました！');
+                        loadPlayers();
+                        loadVoters();
+                        loadCommissionLog();
+                        renderActiveRacesList();
+                        loadVotersBets();
+                        loadCompletedRacesHistory();
+                    } else {
+                        showToast('パスワードが正しくありません', true);
                     }
-                    if (adminQuickLockBtn) adminQuickLockBtn.style.display = 'none';
-                }
+                });
+            });
+        }
+
+        if (changePasswordForm) {
+            changePasswordForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newPass = newAdminPasswordInput.value;
+                if (!newPass) return;
+                db.ref('settings/admin_password').set(newPass, err => {
+                    if (err) {
+                        showToast('エラーが発生しました', true);
+                    } else {
+                        newAdminPasswordInput.value = '';
+                        showToast('パスワードを変更しました！');
+                    }
+                });
+            });
+        }
+
+        // === Admin: Voters Logic (Firebase) ===
+        function loadVoters() {
+            db.ref('voters').on('value', snapshot => {
+                const data = snapshot.val() || {};
+                voters = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                renderVotersList();
+            });
+        }
+
+        function renderVotersList() {
+            if (!votersList) return;
+            votersList.innerHTML = voters.map(v => 
+                `<div class="player-tag" style="display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                    <span style="font-size: 1.1rem;">${v.name}</span>
+                    <span style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Pass: <span style="color: var(--primary);">${v.password}</span></span>
+                    <button class="delete-voter-btn" data-id="${v.id}">&times;</button>
+                </div>`
+            ).join('');
+
+            document.querySelectorAll('.delete-voter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    if (confirm('このアカウントを削除してもよろしいですか？（関連する投票履歴も消えます）')) {
+                        db.ref(`voters/${id}`).remove(() => {
+                            showToast('アカウントを削除しました！');
+                        });
+                    }
+                });
+            });
+        }
+
+        if (addVoterForm) {
+            addVoterForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = addVoterNameInput.value.trim();
+                const password = addVoterPassInput.value;
+                if (!name || !password) return;
                 
-                // Admin Setup Form synchronization
-                if (adminBetTypeSelect) {
-                    adminBetTypeSelect.value = allowedBetType;
+                // 重複確認
+                const exist = voters.some(v => v.name.toLowerCase() === name.toLowerCase());
+                if (exist) {
+                    showToast('すでに同じ名前のアカウントが存在します', true);
+                    return;
                 }
-                if (isAdminAuthenticated) {
-                    renderSetupPlayersList();
-                }
+
+                const newVoterRef = db.ref('voters').push();
+                newVoterRef.set({
+                    name,
+                    password,
+                    balance: 10000 // 初期資金
+                }, err => {
+                    if (err) {
+                        showToast('エラーが発生しました', true);
+                    } else {
+                        addVoterNameInput.value = '';
+                        addVoterPassInput.value = '';
+                        showToast('投票者アカウントを作成しました！');
+                    }
+                });
+            });
+        }
+
+        // === Admin: Players Logic (Firebase) ===
+        function loadPlayers() {
+            db.ref('players').on('value', snapshot => {
+                const data = snapshot.val() || {};
+                players = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                renderPlayersList();
+                renderSetupPlayersList();
+                renderStatsPlayerSelect();
+            });
+        }
+
+        function renderPlayersList() {
+            if (!playersList) return;
+            playersList.innerHTML = players.map(p => 
+                `<div class="player-tag">
+                    ${p.name}
+                    <button class="delete-player-btn" data-id="${p.id}">&times;</button>
+                </div>`
+            ).join('');
+
+            document.querySelectorAll('.delete-player-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    db.ref(`players/${id}`).remove(() => {
+                        showToast('選手を削除しました！');
+                    });
+                });
+            });
+        }
+
+        if (addPlayerForm) {
+            addPlayerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = addPlayerNameInput.value.trim();
+                if (!name) return;
+                const newPlayerRef = db.ref('players').push();
+                newPlayerRef.set({ name }, err => {
+                    if (err) {
+                        showToast('エラーが発生しました', true);
+                    } else {
+                        addPlayerNameInput.value = '';
+                        showToast('選手を登録しました！');
+                    }
+                });
+            });
+        }
+
+        // === Admin: Setup View (Firebase) ===
+        function renderSetupPlayersList() {
+            if (!setupPlayersList) return;
+            setupPlayersList.innerHTML = players.map(p => 
+                `<label class="setup-checkbox-label" id="setup-label-${p.id}">
+                    <input type="checkbox" name="setup-players" value="${p.id}">
+                    ${p.name}
+                </label>`
+            ).join('');
+
+            // チェックボックス選択時のクラス切り替え
+            document.querySelectorAll('input[name="setup-players"]').forEach(cb => {
+                cb.addEventListener('change', (e) => {
+                    const label = document.getElementById(`setup-label-${e.target.value}`);
+                    if (e.target.checked) {
+                        label.classList.add('selected');
+                    } else {
+                        label.classList.remove('selected');
+                    }
+                    rebuildTeamAllocationUI();
+                });
+            });
+        }
+
+        function rebuildTeamAllocationUI() {
+            const selectedCbs = Array.from(document.querySelectorAll('input[name="setup-players"]:checked'));
+            const selectedIds = selectedCbs.map(cb => cb.value);
+            
+            if (adminBetTypeSelect.value === 'two_teams' && selectedIds.length > 0) {
+                adminTeamAllocSection.style.display = 'block';
+                adminTeamAllocList.innerHTML = selectedIds.map((pid, idx) => {
+                    const p = players.find(x => x.id === pid);
+                    const boatNum = idx + 1;
+                    const isRed = boatNum % 2 !== 0;
+                    const teamName = isRed ? '赤チーム (1)' : '青チーム (2)';
+                    const badgeClass = `boat-badge-${boatNum}`;
+                    return `<div class="bet-row" style="padding: 0.5rem 1rem;">
+                        <span class="runner-boat-badge ${badgeClass}">${boatNum}</span>
+                        <span style="font-weight: bold; width: 120px;">${p ? p.name : ''}</span>
+                        <span style="margin-left: auto; font-weight: bold; color: ${isRed ? '#ff4d4d' : '#3b82f6'}">${teamName}</span>
+                    </div>`;
+                }).join('');
+            } else {
+                adminTeamAllocSection.style.display = 'none';
+            }
+        }
+
+        // === Admin: Setup View Operations ===
+        if (btnStartRace) {
+            btnStartRace.addEventListener('click', () => {
+                const selectedCbs = Array.from(document.querySelectorAll('input[name="setup-players"]:checked'));
+                const selectedIds = selectedCbs.map(cb => cb.value);
+                const raceNum = parseInt(adminRaceNumberSelect.value);
+                const betType = adminBetTypeSelect.value;
                 
-                // Voter Tab setup
+                if (selectedIds.length < 3) {
+                    showToast('選手を3人以上選択してください', true);
+                    return;
+                }
+
+                // チーム自動割り当ての構築
+                const teams = {};
+                if (betType === 'two_teams') {
+                    selectedIds.forEach((pid, idx) => {
+                        const boatNum = idx + 1;
+                        teams[pid] = (boatNum % 2 !== 0) ? 1 : 2; // 奇数が赤(1)、偶数が青(2)
+                    });
+                }
+
+                db.ref(`races/${raceNum}`).set({
+                    active: true,
+                    resolved: false,
+                    allowed_bet_type: betType,
+                    player_ids: selectedIds,
+                    teams: teams,
+                    race_number: raceNum
+                }, err => {
+                    if (err) {
+                        showToast('エラーが発生しました', true);
+                    } else {
+                        showToast(`${raceNum}Rを開始しました！`);
+                        fetchActiveRace();
+                    }
+                });
+            });
+        }
+
+        function renderActiveRacesList() {
+            db.ref('races').on('value', snapshot => {
+                const data = snapshot.val() || {};
+                const activeNums = [];
+                Object.keys(data).forEach(num => {
+                    if (data[num].active) {
+                        activeNums.push(parseInt(num));
+                    }
+                });
+                
+                if (adminActiveRacesList) {
+                    if (activeNums.length === 0) {
+                        adminActiveRacesList.innerHTML = `<span style="color: var(--text-muted);">現在稼働中のレースはありません</span>`;
+                    } else {
+                        adminActiveRacesList.innerHTML = activeNums.sort((a,b)=>a-b).map(num => {
+                            const race = data[num];
+                            return `<div class="bet-row flex-between" style="padding: 0.75rem 1rem;">
+                                <div>
+                                    <strong style="color: var(--primary); font-size: 1.1rem;">${num}R</strong> 
+                                    <span style="margin-left: 10px; color: var(--text-muted); font-size: 0.9rem;">(${betTypeNames[race.allowed_bet_type]})</span>
+                                </div>
+                                <button class="glass-btn danger btn-delete-race" data-num="${num}" style="padding: 0.4rem 1rem; font-size: 0.85rem;">削除</button>
+                            </div>`;
+                        }).join('');
+
+                        document.querySelectorAll('.btn-delete-race').forEach(btn => {
+                            btn.addEventListener('click', (e) => {
+                                const num = e.target.getAttribute('data-num');
+                                if (confirm(`${num}Rを削除してもよろしいですか？（このレースの投票も消去されます）`)) {
+                                    db.ref(`races/${num}`).remove(() => {
+                                        // 投票も削除
+                                        db.ref('votes').once('value', vSnap => {
+                                            const vData = vSnap.val() || {};
+                                            Object.keys(vData).forEach(vid => {
+                                                if (vData[vid].race_number === parseInt(num)) {
+                                                    db.ref(`votes/${vid}`).remove();
+                                                }
+                                            });
+                                            showToast(`${num}Rを削除しました`);
+                                            fetchActiveRace();
+                                        });
+                                    });
+                                }
+                            });
+                        });
+                    }
+                }
+            });
+        }
+
+        // === Admin: Setup controls for active race ===
+        if (btnRevealBets) {
+            btnRevealBets.addEventListener('click', () => {
+                db.ref('settings/reveal').set(true, () => showToast('投票内容を公開しました'));
+            });
+        }
+        if (btnHideBets) {
+            btnHideBets.addEventListener('click', () => {
+                db.ref('settings/reveal').set(false, () => showToast('投票内容を非公開にしました'));
+            });
+        }
+        if (btnShowOdds) {
+            btnShowOdds.addEventListener('click', () => {
+                db.ref('settings/odds_hidden').set(false, () => showToast('投票所のオッズを表示しました'));
+            });
+        }
+        if (btnHideOdds) {
+            btnHideOdds.addEventListener('click', () => {
+                db.ref('settings/odds_hidden').set(true, () => showToast('投票所のオッズを非表示にしました'));
+            });
+        }
+
+        // === Global state sync ===
+        db.ref('settings').on('value', snapshot => {
+            const settings = snapshot.val() || {};
+            isOddsHidden = !!settings.odds_hidden;
+            currentCarryoverPool = parseFloat(settings.carryover_pool) || 0.0;
+            
+            const reveal = !!settings.reveal;
+            if (btnRevealBets && btnHideBets) {
+                if (reveal) {
+                    btnRevealBets.classList.add('active');
+                    btnHideBets.classList.remove('active');
+                } else {
+                    btnRevealBets.classList.remove('active');
+                    btnHideBets.classList.add('active');
+                }
+            }
+            if (btnShowOdds && btnHideOdds) {
+                if (isOddsHidden) {
+                    btnShowOdds.classList.remove('active');
+                    btnHideOdds.classList.add('active');
+                } else {
+                    btnShowOdds.classList.add('active');
+                    btnHideOdds.classList.remove('active');
+                }
+            }
+        });
+
+        // === Active Race Operations & Rendering ===
+        function fetchActiveRace() {
+            const isAdminView = document.getElementById('view-admin').classList.contains('active');
+            let raceNum = 1;
+            
+            if (isAdminView) {
+                raceNum = parseInt(adminRaceNumberSelect.value);
+            } else {
+                raceNum = parseInt(voterRaceNumberSelect.value);
+            }
+
+            // キャリーオーバーの取得も含めてFirebaseから購読
+            db.ref('/').on('value', snapshot => {
+                const data = snapshot.val() || {};
+                const races = data.races || {};
+                const race = races[raceNum] || null;
+                const dbVoters = data.voters || {};
+                const dbVotes = data.votes || {};
+
+                // 投票者リストのローカルキャッシュ更新
+                voters = Object.keys(dbVoters).map(k => ({ id: k, ...dbVoters[k] }));
+
+                // ログイン中の投票者残高をリアルタイム同期
                 if (currentVoter) {
+                    const matched = voters.find(v => v.name === currentVoter.name);
+                    if (matched) {
+                        currentVoter = matched;
+                        const headerBalance = document.getElementById('display-voter-balance');
+                        if (headerBalance) headerBalance.textContent = matched.balance.toLocaleString() + ' G';
+                    }
+                }
+
+                if (!race || !race.active) {
+                    // 非稼働状態
+                    if (isAdminView) {
+                        adminActiveRaceSection.style.display = 'none';
+                        adminRaceLockStatus.textContent = "未稼働";
+                        adminRaceLockStatus.className = "status-badge waiting";
+                    } else {
+                        noRaceMessagePublic.style.display = 'block';
+                        activeVotingContent.style.display = 'none';
+                    }
+                    return;
+                }
+
+                // 稼働中
+                currentRacePlayers = race.player_ids.map(id => {
+                    const p = players.find(x => x.id === id);
+                    return p || { id, name: "不明" };
+                });
+                allowedBetType = race.allowed_bet_type;
+                isRaceLocked = !!race.locked;
+
+                // オッズ計算
+                const totalVotes = [];
+                Object.keys(dbVotes).forEach(vid => {
+                    const v = dbVotes[vid];
+                    if (v.race_number === raceNum && v.bet_type === allowedBetType) {
+                        totalVotes.push(v);
+                    }
+                });
+
+                // オッズ計算ロジックの実行
+                const calculated = calculateDynamicOddsJS(race.player_ids, totalVotes, allowedBetType, currentCarryoverPool);
+                currentOdds = calculated.odds;
+                currentPools = calculated.pools;
+                currentTotalBets = calculated.total_bets;
+
+                if (isAdminView) {
+                    adminActiveRaceSection.style.display = 'block';
+                    adminRaceLockStatus.textContent = isRaceLocked ? "締め切り済み" : "受付中";
+                    adminRaceLockStatus.className = isRaceLocked ? "status-badge complete" : "status-badge waiting";
+                    adminQuickLockBtn.textContent = isRaceLocked ? "受付再開" : "投票締め切り";
+                    
+                    renderRecordPlayersGrid();
+                    renderLiveRankingDisplay();
+                } else {
                     noRaceMessagePublic.style.display = 'none';
                     activeVotingContent.style.display = 'block';
                     displayAllowedBetType.textContent = betTypeNames[allowedBetType];
                     
-                    // Render Stats
-                    const statsData = await apiCall('/api/stats');
-                    const activeStats = currentRacePlayers.map(p => {
-                        const s = statsData.stats.find(stat => stat.id === p.id);
-                        return s || { id: p.id, name: p.name, races_played: 0, point_rate: 0, win_rate: 0, quinella_rate: 0, exacta_rate: 0 };
+                    const raceKey = `${raceNum}_${allowedBetType}_${race.player_ids.join('_')}`;
+                    if (lastRenderedRaceKey !== raceKey) {
+                        renderGridMarkSheet();
+                        lastRenderedRaceKey = raceKey;
+                    }
+                    renderCartItems();
+                    updateOddsValues();
+                }
+            });
+        }
+
+        // JavaScript側での動的オッズ計算
+        function calculateDynamicOddsJS(playerIds, votesList, betType, carryoverPool) {
+            const RETURN_RATE = 0.90;
+            const addedCarryover = carryoverPool * 0.90;
+            
+            const pools = {};
+            let totalBets = 0.0;
+
+            // プールの初期化
+            if (betType === 'win') {
+                playerIds.forEach(pid => {
+                    pools[JSON.stringify([pid])] = 0.0;
+                });
+            } else if (betType === 'two_teams') {
+                [1, 2].forEach(team => {
+                    pools[JSON.stringify([team])] = 0.0;
+                });
+            } else if (betType === 'exacta') {
+                permutations(playerIds, 2).forEach(pair => {
+                    pools[JSON.stringify(pair)] = 0.0;
+                });
+            } else if (betType === 'trifecta') {
+                permutations(playerIds, 3).forEach(triple => {
+                    pools[JSON.stringify(triple)] = 0.0;
+                });
+            }
+
+            // リアル投票の加算
+            votesList.forEach(v => {
+                const patternStr = JSON.stringify(v.pattern);
+                if (pools[patternStr] !== undefined) {
+                    pools[patternStr] += parseFloat(v.amount);
+                    totalBets += parseFloat(v.amount);
+                }
+            });
+
+            // オッズの算出
+            const oddsResult = {};
+            oddsResult[betType] = [];
+            const boatMap = {};
+            playerIds.forEach((pid, idx) => { boatMap[pid] = idx + 1; });
+
+            if (betType === 'win') {
+                playerIds.forEach(pid => {
+                    const pStr = JSON.stringify([pid]);
+                    let o = 0.0;
+                    if (totalBets > 0) {
+                        if (pools[pStr] > 0) {
+                            o = ((totalBets * RETURN_RATE) + addedCarryover) / pools[pStr];
+                        } else {
+                            o = (((totalBets + 100.0) * RETURN_RATE) + addedCarryover) / 100.0;
+                        }
+                    } else {
+                        o = ((100.0 * RETURN_RATE) + addedCarryover) / 100.0;
+                    }
+                    const p = players.find(x => x.id === pid);
+                    oddsResult['win'].push({
+                        player_id: pid,
+                        name: p ? p.name : "不明",
+                        boat_pattern: [boatMap[pid]],
+                        odds: o
                     });
-                    const tbody = document.getElementById('voting-stats-table-body');
-                    if (tbody) {
-                        tbody.innerHTML = activeStats.map((s, idx) => `
-                            <tr>
-                                <td style="font-weight:bold; color:var(--primary);">${idx + 1}</td>
-                                <td>${s.name}</td>
-                                <td>${s.races_played}</td>
-                                <td>${s.point_rate.toFixed(2)}</td>
-                                <td>${(s.win_rate * 100).toFixed(1)}%</td>
-                                <td>${(s.quinella_rate * 100).toFixed(1)}%</td>
-                                <td>${(s.exacta_rate * 100).toFixed(1)}%</td>
-                            </tr>
-                        `).join('');
-                    }
+                });
+                oddsResult['win'].sort((a,b) => a.boat_pattern[0] - b.boat_pattern[0]);
 
-                    // Check if race is locked
-                    const lockMessageEl = document.getElementById('voter-locked-message');
-                    const markSheetCardEl = document.getElementById('voter-mark-sheet-card');
-                    if (lockMessageEl && markSheetCardEl) {
-                        if (isRaceLocked) {
-                            lockMessageEl.style.display = 'block';
-                            markSheetCardEl.style.display = 'none';
-                            const cartSection = document.getElementById('cart-list-section');
-                            if (cartSection) cartSection.style.display = 'none';
+            } else if (betType === 'two_teams') {
+                [1, 2].forEach(team => {
+                    const pStr = JSON.stringify([team]);
+                    let o = 0.0;
+                    if (totalBets > 0) {
+                        if (pools[pStr] > 0) {
+                            o = ((totalBets * RETURN_RATE) + addedCarryover) / pools[pStr];
                         } else {
-                            lockMessageEl.style.display = 'none';
-                            markSheetCardEl.style.display = 'block';
+                            o = (((totalBets + 100.0) * RETURN_RATE) + addedCarryover) / 100.0;
+                        }
+                    } else {
+                        if (addedCarryover > 0) {
+                            o = ((100.0 * RETURN_RATE) + addedCarryover) / 100.0;
+                        } else {
+                            o = 1.8;
                         }
                     }
+                    oddsResult['two_teams'].push({
+                        pattern: [team],
+                        team_name: team === 1 ? '赤チーム' : '青チーム',
+                        odds: o
+                    });
+                });
 
-                    // Update voter mark sheet options and status
-                    updateVoteMarkSheet();
-                    
-                    renderVoterOddsView();
-                }
-            } else {
-                currentRacePlayers = [];
-                currentOdds = null;
-                allowedBetType = null;
-                
-                // Admin Active Race Section
-                adminActiveRaceSection.style.display = 'none';
-
-                if (isAdminAuthenticated) {
-                    renderSetupPlayersList();
-                }
-
-                // Voter Tab
-                if (currentVoter) {
-                    try {
-                        const resData = await apiCall(`/api/races/results?race_number=${raceNumber}`);
-                        const resultsSection = document.getElementById('voter-race-results-section');
-                        if (resData.completed) {
-                            noRaceMessagePublic.style.display = 'none';
-                            activeVotingContent.style.display = 'none';
-                            if (resultsSection) resultsSection.style.display = 'block';
-                            
-                            // Render Bet Type
-                            const betTypesMap = { 'win': '単勝', 'two_teams': '2チーム', 'exacta': '2連単', 'trifecta': '3連単' };
-                            const betTypeLabel = document.getElementById('voter-results-bet-type');
-                            if (betTypeLabel) betTypeLabel.textContent = betTypesMap[resData.bet_type] || resData.bet_type;
-                            
-                            // Render Ranking
-                            const rankingList = document.getElementById('voter-results-ranking-list');
-                            if (rankingList) {
-                                rankingList.innerHTML = resData.results.map(r => `
-                                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 1rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                                        <span style="font-weight: bold; color: var(--primary);">${r.position}着</span>
-                                        <span>${r.player_name}</span>
-                                        <span style="font-size: 0.85rem; color: var(--text-muted);">(+${r.points}点)</span>
-                                    </div>
-                                `).join('');
-                            }
-                            
-                            // Filter my votes for this race
-                            const myVotesForRace = resData.votes.filter(v => v.voter_id === currentVoter.id);
-                            const myTbody = document.getElementById('voter-results-my-tbody');
-                            if (myTbody) {
-                                if (myVotesForRace.length > 0) {
-                                    myTbody.innerHTML = myVotesForRace.map(w => {
-                                        const payoutStr = w.is_hit 
-                                            ? `<span style="color: var(--success); font-weight: bold;">+${w.payout.toLocaleString()} G</span>`
-                                            : '<span style="color: var(--text-muted);">0 G</span>';
-                                        return `
-                                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                                <td style="padding: 0.75rem 0.5rem; color: var(--primary); font-family: monospace;">${w.display_pattern}</td>
-                                                <td style="padding: 0.75rem 0.5rem;">${w.amount} G</td>
-                                                <td style="padding: 0.75rem 0.5rem; color: var(--warning); font-weight: bold;">${w.odds.toFixed(1)}倍</td>
-                                                <td style="padding: 0.75rem 0.5rem;">${payoutStr}</td>
-                                            </tr>
-                                        `;
-                                    }).join('');
-                                } else {
-                                    myTbody.innerHTML = `
-                                        <tr>
-                                            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
-                                                このレースへの投票はありませんでした
-                                            </td>
-                                        </tr>
-                                    `;
-                                }
-                            }
+            } else if (betType === 'exacta') {
+                permutations(playerIds, 2).forEach(pair => {
+                    const pStr = JSON.stringify(pair);
+                    let o = 0.0;
+                    if (totalBets > 0) {
+                        if (pools[pStr] > 0) {
+                            o = ((totalBets * RETURN_RATE) + addedCarryover) / pools[pStr];
                         } else {
-                            if (resultsSection) resultsSection.style.display = 'none';
-                            noRaceMessagePublic.style.display = 'block';
-                            activeVotingContent.style.display = 'none';
+                            o = (((totalBets + 100.0) * RETURN_RATE) + addedCarryover) / 100.0;
                         }
-                    } catch(err) {
-                        const resultsSection = document.getElementById('voter-race-results-section');
-                        if (resultsSection) resultsSection.style.display = 'none';
-                        noRaceMessagePublic.style.display = 'block';
-                        activeVotingContent.style.display = 'none';
+                    } else {
+                        o = ((100.0 * RETURN_RATE) + addedCarryover) / 100.0;
                     }
-                }
+                    oddsResult['exacta'].push({
+                        pattern: pair,
+                        pattern_names: pair.map(id => { const p = players.find(x=>x.id===id); return p ? p.name : ""; }),
+                        boat_pattern: pair.map(id => boatMap[id]),
+                        odds: o
+                    });
+                });
+                oddsResult['exacta'].sort((a,b) => (a.boat_pattern[0] * 10 + a.boat_pattern[1]) - (b.boat_pattern[0] * 10 + b.boat_pattern[1]));
+
+            } else if (betType === 'trifecta') {
+                permutations(playerIds, 3).forEach(triple => {
+                    const pStr = JSON.stringify(triple);
+                    let o = 0.0;
+                    if (totalBets > 0) {
+                        if (pools[pStr] > 0) {
+                            o = ((totalBets * RETURN_RATE) + addedCarryover) / pools[pStr];
+                        } else {
+                            o = (((totalBets + 100.0) * RETURN_RATE) + addedCarryover) / 100.0;
+                        }
+                    } else {
+                        o = ((100.0 * RETURN_RATE) + addedCarryover) / 100.0;
+                    }
+                    oddsResult['trifecta'].push({
+                        pattern: triple,
+                        pattern_names: triple.map(id => { const p = players.find(x=>x.id===id); return p ? p.name : ""; }),
+                        boat_pattern: triple.map(id => boatMap[id]),
+                        odds: o
+                    });
+                });
+                oddsResult['trifecta'].sort((a,b) => (a.boat_pattern[0] * 100 + a.boat_pattern[1] * 10 + a.boat_pattern[2]) - (b.boat_pattern[0] * 100 + b.boat_pattern[1] * 10 + b.boat_pattern[2]));
             }
-        } catch(err) {
-            console.error("Error in fetchActiveRace:", err);
-        }
-    }
 
-    function updateVoteMarkSheet() {
-        if (!voterRaceNumberSelect) return;
-        const rNum = voterRaceNumberSelect.value;
-        const raceData = activeRaces[rNum];
-        
-        // Find DOM container
-        const container = document.getElementById('mark-sheet-rows-container');
-        const betTypeLabel = document.getElementById('mark-sheet-bet-type-label');
-        if (!container || !betTypeLabel) return;
-        
-        if (!raceData || !raceData.active) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 2rem; color: var(--text-muted); font-weight: bold;">
-                    出走表が登録されていません。
-                </div>
-            `;
-            betTypeLabel.textContent = '---';
-            return;
+            return { odds: oddsResult, pools, total_bets: totalBets };
         }
-        
-        const currentRaceKey = `${rNum}_${raceData.allowed_bet_type}`;
-        if (lastRenderedRaceKey !== currentRaceKey) {
-            selectedMarkCombination = [[], [], []];
-            lastRenderedRaceKey = currentRaceKey;
+
+        // === Admin: Result Entry & Submit (Firebase) ===
+        if (adminQuickLockBtn) {
+            adminQuickLockBtn.addEventListener('click', () => {
+                const raceNum = parseInt(adminRaceNumberSelect.value);
+                db.ref(`races/${raceNum}/locked`).set(!isRaceLocked, () => {
+                    showToast(isRaceLocked ? "投票の受付を再開しました" : "投票受付を締め切りました");
+                });
+            });
         }
-        
-        betTypeLabel.textContent = betTypeNames[raceData.allowed_bet_type] || '---';
-        
-        // Restore/Set place columns in headers
-        const place1Header = document.querySelector('.mark-sheet-row.header .place-1');
-        const place2Header = document.querySelector('.mark-sheet-row.header .place-2');
-        const place3Header = document.querySelector('.mark-sheet-row.header .place-3');
-        
-        if (raceData.allowed_bet_type === 'two_teams') {
-            if (place1Header) place1Header.textContent = '選択';
-            if (place2Header) place2Header.style.display = 'none';
-            if (place3Header) place3Header.style.display = 'none';
-            
-            const redTeamPlayers = raceData.players.filter((p, idx) => (idx + 1) % 2 !== 0).map(p => p.name).join(', ');
-            const blueTeamPlayers = raceData.players.filter((p, idx) => (idx + 1) % 2 === 0).map(p => p.name).join(', ');
-            
-            container.innerHTML = `
-                <div class="mark-sheet-row team-row" data-team-id="1" style="padding: 1rem; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between;">
-                    <div class="mark-sheet-col col-runner" style="justify-content: flex-start;">
-                        <span class="runner-boat-badge" style="background: linear-gradient(135deg, #ff4d4d, #b30000); box-shadow: 0 0 10px rgba(255, 77, 77, 0.4); width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; margin-right: 1rem;">赤</span>
-                        <div style="display: flex; flex-direction: column;">
-                            <span style="font-weight: bold; color: #fff;">赤チーム (1・3・5号艇)</span>
-                            <span style="font-size: 0.8rem; color: var(--text-muted);">${redTeamPlayers}</span>
-                        </div>
-                    </div>
-                    <div class="mark-sheet-col col-place place-1">
-                        <button type="button" class="cell-select-btn team-select-btn" data-place="1" data-player-id="1" style="background: linear-gradient(135deg, #ff4d4d, #b30000); box-shadow: 0 0 10px rgba(255, 77, 77, 0.3); border: none; padding: 0.75rem 2rem; border-radius: 12px; font-weight: bold; color: #fff; cursor: pointer; transition: all 0.2s;">選択</button>
-                    </div>
-                </div>
-                <div class="mark-sheet-row team-row" data-team-id="2" style="padding: 1rem; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between;">
-                    <div class="mark-sheet-col col-runner" style="justify-content: flex-start;">
-                        <span class="runner-boat-badge" style="background: linear-gradient(135deg, #0077ff, #0000b3); box-shadow: 0 0 10px rgba(0, 119, 255, 0.4); width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; margin-right: 1rem;">青</span>
-                        <div style="display: flex; flex-direction: column;">
-                            <span style="font-weight: bold; color: #fff;">青チーム (2・4・6号艇)</span>
-                            <span style="font-size: 0.8rem; color: var(--text-muted);">${blueTeamPlayers}</span>
-                        </div>
-                    </div>
-                    <div class="mark-sheet-col col-place place-1">
-                        <button type="button" class="cell-select-btn team-select-btn" data-place="1" data-player-id="2" style="background: linear-gradient(135deg, #0077ff, #0000b3); box-shadow: 0 0 10px rgba(0, 119, 255, 0.3); border: none; padding: 0.75rem 2rem; border-radius: 12px; font-weight: bold; color: #fff; cursor: pointer; transition: all 0.2s;">選択</button>
-                    </div>
-                </div>
-            `;
-            
-            document.querySelectorAll('.team-select-btn').forEach(btn => {
+
+        function renderRecordPlayersGrid() {
+            if (!recordPlayersGrid) return;
+            recordPlayersGrid.innerHTML = currentRacePlayers.map((p, idx) => {
+                const isFinished = currentRaceResults.includes(p.id);
+                const finishRank = currentRaceResults.indexOf(p.id) + 1;
+                const boatNum = idx + 1;
+                
+                return `<button class="racer-btn${isFinished ? ' finished' : ''}" data-id="${p.id}">
+                    <span class="rank-badge">${finishRank}</span>
+                    <span class="runner-boat-badge boat-badge-${boatNum}" style="display:block; margin:0 auto 10px;">${boatNum}</span>
+                    <div style="font-weight: bold;">${p.name}</div>
+                </button>`;
+            }).join('');
+
+            document.querySelectorAll('.racer-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    if (raceData.is_locked) return;
-                    const teamVal = parseInt(e.currentTarget.getAttribute('data-player-id'));
-                    if (selectedMarkCombination[0].includes(teamVal)) {
-                        selectedMarkCombination[0] = [];
-                    } else {
-                        selectedMarkCombination[0] = [teamVal];
+                    const id = btn.getAttribute('data-id');
+                    if (!currentRaceResults.includes(id) && currentRaceResults.length < 3) {
+                        currentRaceResults.push(id);
+                        renderRecordPlayersGrid();
+                        renderLiveRankingDisplay();
                     }
-                    refreshTeamSelectionUI();
-                    updateSelectedOddsDisplay();
                 });
             });
-            
-            refreshTeamSelectionUI();
-            updateSelectedOddsDisplay();
-            return;
-        }
-        
-        if (place1Header) place1Header.textContent = '1着';
-        if (place2Header) place2Header.style.display = 'flex';
-        if (place3Header) place3Header.style.display = 'flex';
-
-        // Generate rows for each player
-        const html = raceData.players.map((p, idx) => {
-            const boatNum = idx + 1;
-            const is1stDisabled = raceData.is_locked ? 'disabled' : '';
-            const is2ndDisabled = (raceData.is_locked || raceData.allowed_bet_type === 'win') ? 'disabled' : '';
-            const is3rdDisabled = (raceData.is_locked || raceData.allowed_bet_type === 'win' || raceData.allowed_bet_type === 'exacta') ? 'disabled' : '';
-            
-            return `
-                <div class="mark-sheet-row" data-player-id="${p.id}">
-                    <div class="mark-sheet-col col-runner" style="justify-content: flex-start; padding-left: 1.5rem;">
-                        <span class="runner-boat-badge boat-badge-${boatNum}">${boatNum}</span>
-                        <span class="runner-name-text">${p.name}</span>
-                    </div>
-                    <div class="mark-sheet-col col-place place-1">
-                        <button type="button" class="cell-select-btn" data-place="1" data-player-id="${p.id}" data-boat-num="${boatNum}" ${is1stDisabled}>${boatNum}</button>
-                    </div>
-                    <div class="mark-sheet-col col-place place-2">
-                        <button type="button" class="cell-select-btn" data-place="2" data-player-id="${p.id}" data-boat-num="${boatNum}" ${is2ndDisabled}>${boatNum}</button>
-                    </div>
-                    <div class="mark-sheet-col col-place place-3">
-                        <button type="button" class="cell-select-btn" data-place="3" data-player-id="${p.id}" data-boat-num="${boatNum}" ${is3rdDisabled}>${boatNum}</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-        container.innerHTML = html;
-        
-        // Hide unused place columns in headers
-        
-        if (raceData.allowed_bet_type === 'win') {
-            if (place2Header) place2Header.style.display = 'none';
-            if (place3Header) place3Header.style.display = 'none';
-            document.querySelectorAll('.mark-sheet-row:not(.header) .place-2').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('.mark-sheet-row:not(.header) .place-3').forEach(el => el.style.display = 'none');
-        } else if (raceData.allowed_bet_type === 'exacta') {
-            if (place2Header) place2Header.style.display = 'flex';
-            if (place3Header) place3Header.style.display = 'none';
-            document.querySelectorAll('.mark-sheet-row:not(.header) .place-2').forEach(el => el.style.display = 'flex');
-            document.querySelectorAll('.mark-sheet-row:not(.header) .place-3').forEach(el => el.style.display = 'none');
-        } else {
-            if (place2Header) place2Header.style.display = 'flex';
-            if (place3Header) place3Header.style.display = 'flex';
-            document.querySelectorAll('.mark-sheet-row:not(.header) .place-2').forEach(el => el.style.display = 'flex');
-            document.querySelectorAll('.mark-sheet-row:not(.header) .place-3').forEach(el => el.style.display = 'flex');
-        }
-        
-        // Restore active class based on selectedMarkCombination
-        refreshCellSelectionUI();
-        updateSelectedOddsDisplay();
-        
-        // Bind selection event listeners
-        document.querySelectorAll('.cell-select-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const btnEl = e.currentTarget;
-                const placeIdx = parseInt(btnEl.getAttribute('data-place')) - 1;
-                const playerId = parseInt(btnEl.getAttribute('data-player-id'));
-                
-                // Toggle selection (multiple selection allowed for formation!)
-                if (selectedMarkCombination[placeIdx].includes(playerId)) {
-                    selectedMarkCombination[placeIdx] = selectedMarkCombination[placeIdx].filter(id => id !== playerId);
-                } else {
-                    selectedMarkCombination[placeIdx].push(playerId);
-                }
-                
-                refreshCellSelectionUI();
-                updateSelectedOddsDisplay();
-            });
-        });
-    }
-
-    function refreshCellSelectionUI() {
-        document.querySelectorAll('.cell-select-btn').forEach(btn => {
-            const btnPlaceIdx = parseInt(btn.getAttribute('data-place')) - 1;
-            const btnPlayerId = parseInt(btn.getAttribute('data-player-id'));
-            
-            if (selectedMarkCombination[btnPlaceIdx].includes(btnPlayerId)) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-    }
-
-    function refreshTeamSelectionUI() {
-        document.querySelectorAll('.team-select-btn').forEach(btn => {
-            const teamVal = parseInt(btn.getAttribute('data-player-id'));
-            if (selectedMarkCombination[0].includes(teamVal)) {
-                btn.classList.add('active');
-                btn.style.filter = 'brightness(1.2) contrast(1.1)';
-                btn.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.4)';
-                btn.textContent = '選択中';
-            } else {
-                btn.classList.remove('active');
-                btn.style.filter = 'none';
-                btn.style.boxShadow = 'none';
-                btn.textContent = '選択';
-            }
-        });
-    }
-
-    function getSelectedCombinations() {
-        const rNum = voterRaceNumberSelect.value;
-        const raceData = activeRaces[rNum];
-        if (!raceData || !raceData.active) return [];
-        
-        const type = raceData.allowed_bet_type;
-        const A = selectedMarkCombination[0] || [];
-        const B = selectedMarkCombination[1] || [];
-        const C = selectedMarkCombination[2] || [];
-        
-        const list = [];
-        
-        if (type === 'win') {
-            for (let a of A) {
-                list.push({ pattern: [a], type: 'win' });
-            }
-        } else if (type === 'two_teams') {
-            for (let a of A) {
-                list.push({ pattern: [a], type: 'two_teams' });
-            }
-        } else if (type === 'exacta') {
-            for (let a of A) {
-                for (let b of B) {
-                    if (a !== b) {
-                        list.push({ pattern: [a, b], type: 'exacta' });
-                    }
-                }
-            }
-        } else if (type === 'trifecta') {
-            for (let a of A) {
-                for (let b of B) {
-                    for (let c of C) {
-                        if (a !== b && a !== c && b !== c) {
-                            list.push({ pattern: [a, b, c], type: 'trifecta' });
-                        }
-                    }
-                }
-            }
-        }
-        return list;
-    }
-
-    function updateSelectedOddsDisplay() {
-        const oddsValEl = document.getElementById('selected-bet-odds-val');
-        const patternDisplayEl = document.getElementById('selected-bet-pattern-display');
-        if (!oddsValEl || !patternDisplayEl) return;
-        
-        const combinations = getSelectedCombinations();
-        if (combinations.length === 0) {
-            oddsValEl.textContent = '---';
-            patternDisplayEl.textContent = '選択されていません';
-            return;
-        }
-        
-        const rNum = voterRaceNumberSelect.value;
-        const raceData = activeRaces[rNum];
-        if (!raceData || !raceData.active || !currentOdds) return;
-        
-        const type = raceData.allowed_bet_type;
-        
-        // Render combination text description
-        // Get sorted boat numbers for display in each column
-        const getDisplayGroup = (pids) => {
-            if (pids.length === 0) return '?';
-            return pids.map(pid => {
-                const idx = raceData.players.findIndex(p => p.id === pid);
-                return idx !== -1 ? (idx + 1) : '?';
-            }).sort((a, b) => a - b).join(',');
-        };
-        
-        let patternStr = "";
-        if (type === 'win') {
-            patternStr = `${getDisplayGroup(selectedMarkCombination[0])}号艇`;
-        } else if (type === 'two_teams') {
-            patternStr = selectedMarkCombination[0][0] === 1 ? '赤チーム (1・3・5号艇)' : '青チーム (2・4・6号艇)';
-        } else if (type === 'exacta') {
-            patternStr = `${getDisplayGroup(selectedMarkCombination[0])} - ${getDisplayGroup(selectedMarkCombination[1])}`;
-        } else {
-            patternStr = `${getDisplayGroup(selectedMarkCombination[0])} - ${getDisplayGroup(selectedMarkCombination[1])} - ${getDisplayGroup(selectedMarkCombination[2])}`;
-        }
-        
-        patternDisplayEl.textContent = `${patternStr} (計 ${combinations.length} 点)`;
-        if (isOddsHidden) {
-            oddsValEl.textContent = '🔒 非表示';
-            return;
         }
 
-        let matchedOddsList = [];
-        for (let comb of combinations) {
-            let liveOdds = 0.0;
-            if (currentOdds && currentOdds[type]) {
-                const oddsData = currentOdds[type];
-                if (type === 'win') {
-                    const found = oddsData.find(o => o.player_id === comb.pattern[0]);
-                    if (found) liveOdds = found.odds;
-                } else {
-                    const patternStr = JSON.stringify(comb.pattern);
-                    const found = oddsData.find(o => JSON.stringify(o.pattern) === patternStr);
-                    if (found) liveOdds = found.odds;
-                }
-            }
-            if (liveOdds >= 1.0) {
-                matchedOddsList.push(liveOdds);
-            }
-        }
-        
-        if (matchedOddsList.length === 0) {
-            oddsValEl.textContent = '---';
-        } else {
-            const minOdds = Math.min(...matchedOddsList);
-            const maxOdds = Math.max(...matchedOddsList);
-            if (minOdds === maxOdds) {
-                oddsValEl.textContent = `${minOdds.toFixed(1)}倍`;
-            } else {
-                oddsValEl.textContent = `${minOdds.toFixed(1)}倍 〜 ${maxOdds.toFixed(1)}倍`;
-            }
-        }
-    }
-
-    function renderVoterOddsView() {
-        if (isOddsHidden) {
-            votingOddsDisplay.innerHTML = `
-                <div style="grid-column: 1 / -1; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--glass-border); border-radius: 20px; padding: 2.5rem 1.5rem; text-align: center; color: var(--text-muted); font-size: 1.1rem; font-weight: bold; letter-spacing: 0.5px; animation: fadeIn 0.4s ease;">
-                    <div style="font-size: 2.5rem; margin-bottom: 0.8rem; filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.2));">🔒</div>
-                    オッズは現在締め切り前のため非表示となっています
-                </div>
-            `;
-            return;
-        }
-
-        if (!currentOdds || !allowedBetType) return;
-        const oddsData = currentOdds[allowedBetType];
-        
-        if (allowedBetType === 'win') {
-            votingOddsDisplay.innerHTML = oddsData.map(o => {
-                const displayOdds = (o.odds === 0.0 || o.odds < 1.0) ? '---' : o.odds.toFixed(1);
-                const colorStyle = (o.odds === 0.0 || o.odds < 1.0) ? 'color: var(--text-muted); text-shadow: none;' : '';
-                const boatNum = o.boat_pattern[0];
-                return `
-                <div class="odds-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.25rem; border-radius: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); text-align: center;">
-                    <div class="pattern-names" style="font-size:1.3rem; font-weight:bold; color: var(--primary); margin-bottom: 0.1rem;">${boatNum}号艇</div>
-                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">${o.name}</div>
-                    <div class="odds-value" style="font-size: 1.8rem; font-weight: 900; color: var(--warning); text-shadow: 0 0 10px rgba(255,170,0,0.3); ${colorStyle}">${displayOdds}</div>
-                </div>
-                `;
-            }).join('');
-        } else if (allowedBetType === 'two_teams') {
-            const rNum = voterRaceNumberSelect.value;
-            const raceData = activeRaces[rNum];
-            
-            votingOddsDisplay.innerHTML = oddsData.map(o => {
-                const displayOdds = (o.odds === 0.0 || o.odds < 1.0) ? '---' : o.odds.toFixed(1);
-                const colorStyle = (o.odds === 0.0 || o.odds < 1.0) ? 'color: var(--text-muted); text-shadow: none;' : '';
-                const teamName = o.team_name;
-                const teamGradient = o.pattern[0] === 1 
-                    ? 'background: linear-gradient(135deg, rgba(255,77,77,0.15), rgba(179,0,0,0.25)); border: 1px solid rgba(255,77,77,0.4);'
-                    : 'background: linear-gradient(135deg, rgba(0,119,255,0.15), rgba(0,0,179,0.25)); border: 1px solid rgba(0,119,255,0.4);';
-                const titleColor = o.pattern[0] === 1 ? '#ff4d4d' : '#0077ff';
-                
-                let membersDisplay = '';
-                if (raceData && raceData.active && raceData.teams) {
-                    const matchedPlayers = raceData.players.filter(p => raceData.teams[p.id] === o.pattern[0]);
-                    membersDisplay = matchedPlayers.map((p) => {
-                        const idx = raceData.players.findIndex(x => x.id === p.id);
-                        const boatNum = idx !== -1 ? (idx + 1) : '?';
-                        return `${boatNum}号艇:${p.name}`;
-                    }).join(', ');
-                }
-                if (!membersDisplay) {
-                    membersDisplay = o.pattern[0] === 1 ? '1・3・5号艇' : '2・4・6号艇';
-                }
-                
-                return `
-                <div class="odds-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.25rem; border-radius: 16px; ${teamGradient} text-align: center;">
-                    <div class="pattern-names" style="font-size:1.3rem; font-weight:bold; color: ${titleColor}; margin-bottom: 0.1rem;">${teamName}</div>
-                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem;">${membersDisplay}</div>
-                    <div class="odds-value" style="font-size: 1.8rem; font-weight: 900; color: var(--warning); text-shadow: 0 0 10px rgba(255,170,0,0.3); ${colorStyle}">${displayOdds}</div>
-                </div>
-                `;
-            }).join('');
-        } else {
-            votingOddsDisplay.innerHTML = oddsData.map(o => {
-                const displayOdds = (o.odds === 0.0 || o.odds < 1.0) ? '---' : o.odds.toFixed(1);
-                const colorStyle = (o.odds === 0.0 || o.odds < 1.0) ? 'color: var(--text-muted); text-shadow: none;' : '';
-                const boatNumbers = o.boat_pattern;
-                return `
-                <div class="odds-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.1rem 0.5rem; border-radius: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); text-align: center;">
-                    <div class="pattern-names" style="font-size:1.4rem; font-weight:bold; letter-spacing: 1px; color: var(--primary); margin-bottom: 0.4rem;">${boatNumbers.join('-')}</div>
-                    <div class="odds-value" style="font-size: 1.7rem; font-weight: 900; color: var(--warning); text-shadow: 0 0 10px rgba(255,170,0,0.3); ${colorStyle}">${displayOdds}</div>
-                </div>
-                `;
-            }).join('');
-        }
-    }
-
-    async function pollActiveRace() {
-        if (!currentVoter) return;
-        if (document.getElementById('view-voting').classList.contains('active')) {
-            try {
-                const rNum = voterRaceNumberSelect.value || 1;
-                const data = await apiCall(`/api/races/active?race_number=${rNum}`);
-                currentCarryoverPool = data.carryover_pool || 0.0;
-                updateCarryoverUI();
-                if (data.active) {
-                    const wasInactive = (activeVotingContent.style.display === 'none');
-                    if (wasInactive || currentRacePlayers.length !== data.players.length) {
-                        fetchActiveRace(rNum);
-                    } else {
-                        currentOdds = data.odds;
-                        currentPools = data.pools || {};
-                        currentTotalBets = data.total_bets || 0.0;
-                        isOddsHidden = data.hide_odds || false;
-                        renderVoterOddsView();
-                        updateSelectedOddsDisplay();
-                    }
-                } else {
-                    if (activeVotingContent.style.display === 'block') {
-                        fetchActiveRace(rNum);
-                    }
-                }
-            } catch(e) {}
-        }
-    }
-    
-    // Poll every 3 seconds for dynamic odds
-    setInterval(pollActiveRace, 3000);
-
-    // Quick Amount buttons
-    document.querySelectorAll('.quick-amt-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const val = e.currentTarget.getAttribute('data-value');
-            const amtInp = document.getElementById('selected-bet-amount');
-            if (!amtInp) return;
-            
-            if (val === 'clear') {
-                amtInp.value = '';
-            } else {
-                const currentVal = parseInt(amtInp.value) || 0;
-                amtInp.value = currentVal + parseInt(val);
-            }
-            updateSelectedOddsDisplay();
-        });
-    });
-
-    const amtInputEl = document.getElementById('selected-bet-amount');
-    if (amtInputEl) {
-        amtInputEl.addEventListener('input', () => {
-            updateSelectedOddsDisplay();
-        });
-    }
-
-    function renderCartTable() {
-        const tbody = document.getElementById('cart-items-tbody');
-        const cartSection = document.getElementById('cart-list-section');
-        if (!tbody || !cartSection) return;
-        
-        if (votingCart.length === 0) {
-            cartSection.style.display = 'none';
-            tbody.innerHTML = '';
-            return;
-        }
-        
-        const totalCartAmount = votingCart.reduce((sum, x) => sum + x.amount, 0);
-        const simulatedTotalPool = currentTotalBets + totalCartAmount;
-        
-        const addedCarryover = currentCarryoverPool * 0.90;
-        cartSection.style.display = 'block';
-        tbody.innerHTML = votingCart.map((item, index) => {
-            let liveOdds = 0.0;
-            if (currentOdds && currentOdds[item.bet_type]) {
-                const oddsData = currentOdds[item.bet_type];
-                if (item.bet_type === 'win') {
-                    const found = oddsData.find(o => o.player_id === item.pattern[0]);
-                    if (found) liveOdds = found.odds;
-                } else {
-                    const patternStr = JSON.stringify(item.pattern);
-                    const found = oddsData.find(o => JSON.stringify(o.pattern) === patternStr);
-                    if (found) liveOdds = found.odds;
-                }
-            }
-            const displayOddsVal = (liveOdds === 0.0 || liveOdds < 1.0) ? '---' : liveOdds.toFixed(1) + 'x';
-            const oddsDisplay = isOddsHidden ? '🔒 非表示' : displayOddsVal;
-            
-            const calcPayout = liveOdds >= 1.0 ? (item.amount * liveOdds) : 0;
-            const payoutDisplay = isOddsHidden ? '🔒 非表示' : calcPayout.toLocaleString(undefined, {maximumFractionDigits: 0}) + ' G';
-            return `
-                <tr class="cart-item-row">
-                    <td style="font-weight: bold; color: var(--primary);">${item.boat_pattern}</td>
-                    <td>${betTypeNames[item.bet_type]}</td>
-                    <td>${item.player_names}</td>
-                    <td style="font-weight: bold; color: #fff;">${item.amount.toLocaleString()} G</td>
-                    <td style="font-weight: bold; color: var(--warning);">${oddsDisplay}</td>
-                    <td style="font-weight: bold; color: var(--success);">${payoutDisplay}</td>
-                    <td>
-                        <button type="button" class="glass-btn danger delete-cart-item-btn" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">🗑️ 削除</button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-        
-        // Bind delete button events
-        document.querySelectorAll('.delete-cart-item-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const index = parseInt(e.currentTarget.getAttribute('data-index'));
-                votingCart.splice(index, 1);
-                renderCartTable();
-                showToast('買い目リストから削除しました');
-            });
-        });
-    }
-
-    function addCurrentSelectionToCart() {
-        const combinations = getSelectedCombinations();
-        if (combinations.length === 0) {
-            showToast('投票マークシートで買い目を選択してください', true);
-            return false;
-        }
-        
-        const rNum = voterRaceNumberSelect.value;
-        const raceData = activeRaces[rNum];
-        if (!raceData || !raceData.active) return false;
-        
-        const amtInp = document.getElementById('selected-bet-amount');
-        const amount = parseInt(amtInp ? amtInp.value : 0) || 0;
-        
-        if (amount < 100 || amount % 100 !== 0) {
-            showToast('購入金額は100G単位（最低100G以上）で入力してください', true);
-            return false;
-        }
-        
-        let addedCount = 0;
-        let skipCount = 0;
-        
-        for (let comb of combinations) {
-            const patternStr = JSON.stringify(comb.pattern);
-            
-            // Check if already in cart
-            const exists = votingCart.some(item => 
-                item.race_number === parseInt(rNum) && 
-                JSON.stringify(item.pattern) === patternStr && 
-                item.bet_type === comb.type
-            );
-            
-            if (exists) {
-                skipCount++;
-                continue;
-            }
-            
-            // Get boat pattern and player names strings
-            let boat_pattern = '';
-            let player_names = '';
-            
-            if (comb.type === 'two_teams') {
-                boat_pattern = comb.pattern[0] === 1 ? '赤チーム (1・3・5号艇)' : '青チーム (2・4・6号艇)';
-                player_names = comb.pattern[0] === 1 ? '赤チーム' : '青チーム';
-            } else {
-                const boatNumbers = comb.pattern.map(pid => {
-                    const idx = raceData.players.findIndex(p => p.id === pid);
-                    return idx !== -1 ? (idx + 1) : '?';
-                });
-                
-                const names = comb.pattern.map(pid => {
-                    const p = raceData.players.find(x => x.id === pid);
-                    return p ? p.name : '?';
-                });
-                
-                boat_pattern = comb.type === 'win' ? `${boatNumbers[0]}号艇` : boatNumbers.join('-');
-                player_names = names.join('-');
-            }
-            
-            // Calculate simulated odds after purchasing this selection with this amount
-            const simulatedTotalPool = currentTotalBets + (amount * combinations.length);
-            
-            let simulatedOdds = 0.0;
-            if (simulatedTotalPool > 0) {
-                simulatedOdds = (simulatedTotalPool * 0.90) / amount;
-            } else {
-                simulatedOdds = 0.90;
-            }
-            let odds = simulatedOdds;
-            
-            votingCart.push({
-                race_number: parseInt(rNum),
-                voter_id: currentVoter.id,
-                bet_type: comb.type,
-                pattern: comb.pattern,
-                display_pattern: boat_pattern,
-                amount: amount,
-                odds: odds,
-                boat_pattern: boat_pattern,
-                player_names: player_names
-            });
-            addedCount++;
-        }
-        
-        if (addedCount === 0) {
-            showToast('選択したすべての買い目がすでに買い目リストにあります', true);
-            return false;
-        }
-        
-        // Reset sheet selection
-        selectedMarkCombination = [[], [], []];
-        refreshCellSelectionUI();
-        updateSelectedOddsDisplay();
-        if (amtInp) amtInp.value = '';
-        
-        renderCartTable();
-        return true;
-    }
-
-    // Bind Add to Cart buttons
-    const btnAddToCart = document.getElementById('btn-add-to-cart');
-    const btnQuickVote = document.getElementById('btn-quick-vote');
-    const btnSubmitCart = document.getElementById('btn-submit-cart');
-    const btnClearCart = document.getElementById('btn-clear-cart');
-    
-    if (btnAddToCart) {
-        btnAddToCart.addEventListener('click', () => {
-            if (addCurrentSelectionToCart()) {
-                showToast('買い目リストに追加しました！下の「買い目リスト」から購入を確定してください。');
-            }
-        });
-    }
-    
-    if (btnQuickVote) {
-        btnQuickVote.addEventListener('click', async () => {
-            if (addCurrentSelectionToCart()) {
-                await submitCartVotes();
-            }
-        });
-    }
-    
-    if (btnSubmitCart) {
-        btnSubmitCart.addEventListener('click', async () => {
-            await submitCartVotes();
-        });
-    }
-    
-    if (btnClearCart) {
-        btnClearCart.addEventListener('click', () => {
-            if (confirm('買い目リストを空にしてもよろしいですか？')) {
-                votingCart = [];
-                renderCartTable();
-                showToast('買い目リストを空にしました');
-            }
-        });
-    }
-
-    async function submitCartVotes() {
-        if (!currentVoter || votingCart.length === 0) return;
-        
-        const rNum = voterRaceNumberSelect.value;
-        const raceData = activeRaces[rNum];
-        
-        if (raceData && raceData.is_locked) {
-            showToast('このレースは投票が締め切られています', true);
-            return;
-        }
-        
-        try {
-            const votesToSubmit = votingCart.filter(item => item.race_number === parseInt(rNum));
-            if (votesToSubmit.length === 0) {
-                showToast('現在の選択レースに対するベットがありません', true);
+        function renderLiveRankingDisplay() {
+            if (!liveRankingDisplay) return;
+            if (currentRaceResults.length === 0) {
+                liveRankingDisplay.innerHTML = `<span style="color:var(--text-muted);">選手を順にタップして着順を登録してください</span>`;
                 return;
             }
-            
-            for (const b of votesToSubmit) {
-                await apiCall('/api/votes', 'POST', {
-                    race_number: b.race_number,
-                    voter_id: b.voter_id,
-                    bet_type: b.bet_type,
-                    pattern: b.pattern,
-                    display_pattern: b.display_pattern,
-                    amount: b.amount
-                });
-            }
-            showToast(`${votesToSubmit.length}件の投票を確定しました！`);
-            
-            // Remove submitted items from cart
-            votingCart = votingCart.filter(item => item.race_number !== parseInt(rNum));
-            
-            renderCartTable();
-            fetchMyVotes();
-            fetchActiveRace();
-        } catch(e) {
-            console.error("Cart submission failed:", e);
+
+            liveRankingDisplay.innerHTML = `<div class="ranking-slots">` + 
+                currentRaceResults.map((id, idx) => {
+                    const p = currentRacePlayers.find(x => x.id === id);
+                    const boatIdx = currentRacePlayers.findIndex(x => x.id === id) + 1;
+                    return `<div class="rank-slot">
+                        ${idx + 1}着: <span class="runner-boat-badge boat-badge-${boatIdx}" style="width:20px; height:20px; font-size:0.75rem; border-radius:4px; margin:0 4px;">${boatIdx}</span> ${p ? p.name : ''}
+                    </div>`;
+                }).join('') +
+            `</div>`;
         }
-    }
 
-    // === Voter: My Votes ===
-    async function fetchMyVotes() {
-        if (!currentVoter) return;
-        try {
-            // Fetch current hide_odds setting dynamically
-            const settings = await apiCall('/api/settings/hide_odds');
-            const hideOdds = settings.hide;
+        if (btnResetRecord) {
+            btnResetRecord.addEventListener('click', () => {
+                currentRaceResults = [];
+                renderRecordPlayersGrid();
+                renderLiveRankingDisplay();
+            });
+        }
 
-            const data = await apiCall(`/api/voter/votes?voter_id=${currentVoter.id}`);
-            myVotesTableBody.innerHTML = data.votes.map(v => {
-                let status = v.is_resolved ? (v.is_hit ? `<span class="neon-text">的中!</span>` : `<span style="color:var(--text-muted);">ハズレ</span>`) : 'レース中...';
-                let payout = v.is_resolved ? (v.is_hit ? v.payout : 0) : '-';
+        if (btnSubmitRecord) {
+            btnSubmitRecord.addEventListener('click', async () => {
+                const raceNum = parseInt(adminRaceNumberSelect.value);
+                const reqCount = (allowedBetType === 'trifecta') ? 3 : ((allowedBetType === 'exacta') ? 2 : 1);
                 
-                let oddsStr = (v.odds && v.odds > 0) ? v.odds.toFixed(1) + '倍' : '---';
-                let payoutStr = payout;
-                if (hideOdds) {
-                    oddsStr = '🔒 非表示';
-                    payoutStr = '🔒 非表示';
-                    if (v.is_resolved) {
-                        status = '🔒 非表示';
-                    }
+                if (currentRaceResults.length < reqCount) {
+                    showToast(`結果の登録には ${reqCount} 人の着順登録が必要です`, true);
+                    return;
                 }
 
-                let actionBtn = `<span style="color:var(--success); font-weight:bold;">確定</span>`;
-                const raceNumStr = v.race_number ? `${v.race_number}R` : '1R';
+                if (!confirm(`${raceNum}Rの結果を確定させ、払戻金の分配とオッズ確定を実行します。よろしいですか？`)) {
+                    return;
+                }
+
+                // 確定計算ロジック
+                resolveRaceFirebase(raceNum, currentRaceResults);
+            });
+        }
+
+        // Firebase内でのレース結果確定・オッズ決定・キャリーオーバー計算処理
+        function resolveRaceFirebase(raceNum, results) {
+            db.ref('/').once('value', snapshot => {
+                const data = snapshot.val() || {};
+                const races = data.races || {};
+                const race = races[raceNum];
+                if (!race) return;
+
+                const dbVotes = data.votes || {};
+                const dbVoters = data.voters || {};
+                const settings = data.settings || {};
+                const carryoverPool = parseFloat(settings.carryover_pool) || 0.0;
                 
-                return `
-                    <tr>
-                        <td style="font-weight:bold; color:var(--primary);">${raceNumStr}</td>
-                        <td>${v.race_date}</td>
-                        <td>${betTypeNames[v.bet_type]}</td>
-                        <td style="font-weight:bold;">${v.display_pattern || v.pattern.join('-')}</td>
-                        <td>${v.amount}</td>
-                        <td style="font-weight:bold; color:var(--warning);">${oddsStr}</td>
-                        <td>${status}</td>
-                        <td style="font-weight:bold; color:var(--success);">${payoutStr}</td>
-                        <td>${actionBtn}</td>
-                    </tr>
-                `;
-            }).join('');
-            
-            document.querySelectorAll('.delete-vote-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const id = e.target.getAttribute('data-id');
-                    const raceNum = parseInt(e.target.getAttribute('data-race-number')) || 1;
-                    try {
-                        await apiCall(`/api/votes/${id}?voter_id=${currentVoter.id}&race_number=${raceNum}`, 'DELETE');
-                        showToast('投票を取り消しました');
-                        fetchMyVotes();
-                    } catch(err) {}
-                });
-            });
-        } catch(e) {}
-    }
+                // キャリーオーバーの適用額
+                const appliedCarryover = carryoverPool;
 
-    // === Live Race Recording (Admin) ===
-    function renderRecordView() {
-        btnLockRace.style.display = isRaceLocked ? 'none' : 'inline-block';
-        
-        const container = document.getElementById('record-players-selects-container');
-        if (!container) return;
+                // 選手名・枠順のマッピング
+                const playerIds = race.player_ids;
+                const boatMap = {};
+                playerIds.forEach((pid, idx) => { boatMap[pid] = idx + 1; });
 
-        if (!isRaceLocked) {
-            container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 1rem;">
-                🔒 着順を記録するには、まず「投票を締め切る」ボタンをクリックして投票を締め切ってください。
-            </div>`;
-            btnSubmitRecord.disabled = true;
-            return;
-        }
+                // 1. 的中パターンの定義
+                let hitPattern = [];
+                if (allowedBetType === 'win') {
+                    hitPattern = [results[0]];
+                } else if (allowedBetType === 'two_teams') {
+                    // 1着の選手のチーム (1 or 2)
+                    const winnerId = results[0];
+                    const boatNum = playerIds.indexOf(winnerId) + 1;
+                    const winnerTeam = (boatNum % 2 !== 0) ? 1 : 2;
+                    hitPattern = [winnerTeam];
+                } else if (allowedBetType === 'exacta') {
+                    hitPattern = [results[0], results[1]];
+                } else if (allowedBetType === 'trifecta') {
+                    hitPattern = [results[0], results[1], results[2]];
+                }
 
-        const raceNum = parseInt(adminRaceNumberSelect.value);
-        const raceData = activeRaces[raceNum];
-        const allowedBetType = (raceData && raceData.active) ? raceData.allowed_bet_type : '';
-
-        if (allowedBetType === 'two_teams') {
-            container.innerHTML = `
-                <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 0.75rem; align-items: center; width: 100%;">
-                    <label style="font-weight: bold; color: var(--primary); font-size: 1.1rem;">勝利チームを選択してください</label>
-                    <div style="display: flex; gap: 1.5rem; justify-content: center; width: 100%; max-width: 400px; margin-top: 0.5rem;">
-                        <label style="flex: 1; text-align: center; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 1.1rem; font-weight: bold; padding: 1rem; border-radius: 12px; background: rgba(255, 77, 77, 0.15); border: 2px solid rgba(255, 77, 77, 0.4); box-shadow: 0 0 10px rgba(255,77,77,0.1);" id="lbl-winner-team-1">
-                            <input type="radio" name="admin-winner-team" value="1" class="admin-winner-team-radio" style="transform: scale(1.3);">
-                            🔴 赤チーム 勝利
-                        </label>
-                        <label style="flex: 1; text-align: center; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 1.1rem; font-weight: bold; padding: 1rem; border-radius: 12px; background: rgba(0, 119, 255, 0.15); border: 2px solid rgba(0, 119, 255, 0.4); box-shadow: 0 0 10px rgba(0,119,255,0.1);" id="lbl-winner-team-2">
-                            <input type="radio" name="admin-winner-team" value="2" class="admin-winner-team-radio" style="transform: scale(1.3);">
-                            🔵 青チーム 勝利
-                        </label>
-                    </div>
-                </div>
-            `;
-            btnSubmitRecord.disabled = true;
-
-            const radios = container.querySelectorAll('.admin-winner-team-radio');
-            radios.forEach(radio => {
-                radio.addEventListener('change', () => {
-                    const lbl1 = document.getElementById('lbl-winner-team-1');
-                    const lbl2 = document.getElementById('lbl-winner-team-2');
-                    if (document.querySelector('input[name="admin-winner-team"]:checked').value === '1') {
-                        lbl1.style.background = 'rgba(255, 77, 77, 0.35)';
-                        lbl1.style.borderColor = 'rgba(255, 77, 77, 1)';
-                        lbl2.style.background = 'rgba(0, 119, 255, 0.15)';
-                        lbl2.style.borderColor = 'rgba(0, 119, 255, 0.4)';
-                    } else {
-                        lbl1.style.background = 'rgba(255, 77, 77, 0.15)';
-                        lbl1.style.borderColor = 'rgba(255, 77, 77, 0.4)';
-                        lbl2.style.background = 'rgba(0, 119, 255, 0.35)';
-                        lbl2.style.borderColor = 'rgba(0, 119, 255, 1)';
+                // 2. 該当レースの全投票を抽出
+                const raceVotes = [];
+                Object.keys(dbVotes).forEach(vid => {
+                    const v = dbVotes[vid];
+                    if (v.race_number === raceNum && v.bet_type === allowedBetType && !v.is_resolved) {
+                        raceVotes.push({ id: vid, ...v });
                     }
-                    
-                    const winningTeam = parseInt(document.querySelector('input[name="admin-winner-team"]:checked').value);
-                    currentRaceResults = [winningTeam];
-                    btnSubmitRecord.disabled = false;
                 });
-            });
-            return;
-        }
 
-        // Generate dropdowns for each position (1st to Nth)
-        let html = '';
-        for (let idx = 0; idx < currentRacePlayers.length; idx++) {
-            const rank = idx + 1;
-            html += `
-                <div class="rank-select-card" style="display: flex; flex-direction: column; gap: 0.5rem; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border);">
-                    <label style="font-weight: bold; color: var(--primary); font-size: 1rem;">${rank}着</label>
-                    <select class="admin-rank-select" data-rank="${rank}" style="background: rgba(0,0,0,0.6); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.6rem; color: #fff; font-size: 1rem; outline: none; cursor: pointer; width: 100%;">
-                        <option value="">-- 選手を選択 --</option>
-                        ${currentRacePlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
-                    </select>
-                </div>
-            `;
-        }
-        container.innerHTML = html;
-        btnSubmitRecord.disabled = true;
+                // 3. オッズの再計算（確定時）
+                const oddsData = calculateDynamicOddsJS(playerIds, raceVotes, allowedBetType, appliedCarryover);
+                const finalOddsDict = oddsData.odds[allowedBetType];
 
-        // Add event listeners to all select elements to handle duplicate selection prevention and enable submit button
-        const selects = container.querySelectorAll('.admin-rank-select');
-        selects.forEach(select => {
-            select.addEventListener('change', () => {
-                const selectedIds = [];
-                let hasDuplicates = false;
-                let allSelected = true;
+                // 4. 各投票の判定
+                let totalPayout = 0;
+                const updatedVotes = {};
+                
+                raceVotes.forEach(v => {
+                    let isHit = false;
+                    const pattern = v.pattern;
 
-                selects.forEach(s => {
-                    const val = s.value;
-                    if (!val) {
-                        allSelected = false;
+                    if (allowedBetType === 'win') {
+                        isHit = (pattern[0] === hitPattern[0]);
+                    } else if (allowedBetType === 'two_teams') {
+                        isHit = (pattern[0] === hitPattern[0]);
+                    } else if (allowedBetType === 'exacta') {
+                        isHit = (pattern[0] === hitPattern[0] && pattern[1] === hitPattern[1]);
+                    } else if (allowedBetType === 'trifecta') {
+                        isHit = (pattern[0] === hitPattern[0] && pattern[1] === hitPattern[1] && pattern[2] === hitPattern[2]);
+                    }
+
+                    // オッズの決定
+                    let targetOdds = 0.0;
+                    if (allowedBetType === 'win') {
+                        const o = finalOddsDict.find(x => x.player_id === pattern[0]);
+                        targetOdds = o ? o.odds : 0.0;
+                    } else if (allowedBetType === 'two_teams') {
+                        const o = finalOddsDict.find(x => x.pattern[0] === pattern[0]);
+                        targetOdds = o ? o.odds : 0.0;
                     } else {
-                        const id = parseInt(val);
-                        if (selectedIds.includes(id)) {
-                            hasDuplicates = true;
+                        const o = finalOddsDict.find(x => JSON.stringify(x.pattern) === JSON.stringify(pattern));
+                        targetOdds = o ? o.odds : 0.0;
+                    }
+
+                    const roundedOdds = Math.round(targetOdds * 10) / 10;
+                    const payout = isHit ? Math.floor(v.amount * roundedOdds) : 0;
+                    totalPayout += payout;
+
+                    updatedVotes[v.id] = {
+                        ...v,
+                        is_resolved: true,
+                        is_hit: isHit,
+                        odds: roundedOdds,
+                        payout: payout
+                    };
+                });
+
+                // 5. 投票者残高の分配
+                const updatedVoters = { ...dbVoters };
+                Object.keys(updatedVotes).forEach(vid => {
+                    const vote = updatedVotes[vid];
+                    if (vote.is_hit && vote.payout > 0) {
+                        // 投票者を探して加算
+                        const voterId = Object.keys(updatedVoters).find(k => updatedVoters[k].name === vote.voter_name);
+                        if (voterId) {
+                            updatedVoters[voterId].balance = (updatedVoters[voterId].balance || 0) + vote.payout;
                         }
-                        selectedIds.push(id);
                     }
                 });
 
-                selects.forEach(s => {
-                    const val = s.value;
-                    if (val) {
-                        const id = parseInt(val);
-                        const count = selectedIds.filter(x => x === id).length;
-                        if (count > 1) {
-                            s.style.borderColor = '#ff0055';
-                            s.style.boxShadow = '0 0 8px rgba(255, 0, 85, 0.4)';
-                        } else {
-                            s.style.borderColor = 'var(--glass-border)';
-                            s.style.boxShadow = 'none';
-                        }
+                // 6. キャリーオーバー及び控除計算
+                let totalBetsOnRace = 0.0;
+                raceVotes.forEach(v => { totalBetsOnRace += parseFloat(v.amount); });
+
+                let newCarryover = 0.0;
+                let carryoverGenerated = 0.0;
+
+                if (totalBetsOnRace > 0) {
+                    if (totalPayout === 0) {
+                        // 的中者なし：キャリーオーバー発生
+                        newCarryover = (totalBetsOnRace * 0.90) + (appliedCarryover * 0.90);
+                        carryoverGenerated = newCarryover;
                     } else {
-                        s.style.borderColor = 'var(--glass-border)';
-                        s.style.boxShadow = 'none';
+                        // 的中者あり：キャリーオーバー消費
+                        newCarryover = 0.0;
+                        carryoverGenerated = 0.0;
                     }
-                });
-
-                if (allSelected && !hasDuplicates) {
-                    currentRaceResults = selectedIds;
-                    btnSubmitRecord.disabled = false;
                 } else {
-                    btnSubmitRecord.disabled = true;
+                    // 投票なし：キャリーオーバー維持
+                    newCarryover = appliedCarryover;
+                    carryoverGenerated = appliedCarryover;
+                }
+
+                // 7. 控除ログの登録
+                const logId = db.ref('commission_log').push().key;
+                const betsCommission = Math.floor(totalBetsOnRace * 0.10);
+                const carryoverCommission = Math.floor(appliedCarryover * 0.10);
+                const totalCommission = betsCommission + carryoverCommission;
+
+                const commLog = {
+                    race_number: raceNum,
+                    total_bets: totalBetsOnRace,
+                    carryover_applied: appliedCarryover,
+                    bets_commission: betsCommission,
+                    carryover_commission: carryoverCommission,
+                    total_commission: totalCommission,
+                    date: new Date().toLocaleString()
+                };
+
+                // Firebaseへの一斉書き込み
+                const updates = {};
+                // レース情報の更新
+                updates[`races/${raceNum}/active`] = false;
+                updates[`races/${raceNum}/resolved`] = true;
+                updates[`races/${raceNum}/results`] = results;
+                updates[`races/${raceNum}/carryover_applied`] = appliedCarryover;
+                updates[`races/${raceNum}/carryover_generated`] = carryoverGenerated;
+                
+                // 投票の更新
+                Object.keys(updatedVotes).forEach(vid => {
+                    updates[`votes/${vid}`] = updatedVotes[vid];
+                });
+                
+                // 残高の更新
+                Object.keys(updatedVoters).forEach(vId => {
+                    updates[`voters/${vId}/balance`] = updatedVoters[vId].balance;
+                });
+
+                // キャリーオーバーの更新
+                updates[`settings/carryover_pool`] = newCarryover;
+                
+                // 控除ログの書き込み
+                updates[`commission_log/${logId}`] = commLog;
+
+                db.ref().update(updates, err => {
+                    if (err) {
+                        showToast('レースの確定に失敗しました', true);
+                    } else {
+                        showToast(`${raceNum}Rを確定しました！`);
+                        currentRaceResults = [];
+                        
+                        // 管理者ページのUI更新
+                        fetchActiveRace();
+                        loadCommissionLog();
+                        loadCompletedRacesHistory();
+                    }
+                });
+            });
+        }
+
+        // === Admin: Commission Log Display ===
+        function loadCommissionLog() {
+            if (!commissionLogTableBody) return;
+            db.ref('commission_log').once('value', snapshot => {
+                const data = snapshot.val() || {};
+                const logs = Object.keys(data).map(k => data[k]).sort((a,b) => a.race_number - b.race_number);
+
+                let sumTotalBets = 0;
+                let sumAppliedCO = 0;
+                let sumBetsComm = 0;
+                let sumCOComm = 0;
+                let sumTotalComm = 0;
+
+                commissionLogTableBody.innerHTML = logs.map(l => {
+                    sumTotalBets += l.total_bets || 0;
+                    sumAppliedCO += l.carryover_applied || 0;
+                    sumBetsComm += l.bets_commission || 0;
+                    sumCOComm += l.carryover_commission || 0;
+                    sumTotalComm += l.total_commission || 0;
+
+                    return `<tr>
+                        <td>${l.race_number}R</td>
+                        <td>${(l.total_bets || 0).toLocaleString()} G</td>
+                        <td>${(l.carryover_applied || 0).toLocaleString()} G</td>
+                        <td>${(l.bets_commission || 0).toLocaleString()} G</td>
+                        <td>${(l.carryover_commission || 0).toLocaleString()} G</td>
+                        <td class="neon-text">${(l.total_commission || 0).toLocaleString()} G</td>
+                        <td style="font-size:0.8rem; color:var(--text-muted);">${l.date || ''}</td>
+                    </tr>`;
+                }).join('');
+
+                if (commissionLogTableFoot) {
+                    commissionLogTableFoot.innerHTML = `<tr style="font-weight: bold; background: rgba(255,255,255,0.05);">
+                        <td>合計</td>
+                        <td>${sumTotalBets.toLocaleString()} G</td>
+                        <td>${sumAppliedCO.toLocaleString()} G</td>
+                        <td>${sumBetsComm.toLocaleString()} G</td>
+                        <td>${sumCOComm.toLocaleString()} G</td>
+                        <td class="neon-text" style="font-size: 1.1rem; text-shadow:0 0 10px rgba(0,240,255,0.4);">${sumTotalComm.toLocaleString()} G</td>
+                        <td>-</td>
+                    </tr>`;
                 }
             });
-        });
-    }
-
-    const handleRaceLock = async () => {
-        const raceNum = parseInt(adminRaceNumberSelect.value);
-        if (confirm(`${raceNum}Rの投票を締め切りますか？\n（一度締め切ると解除できません）`)) {
-            try {
-                await apiCall('/api/races/lock', 'POST', { race_number: raceNum });
-                showToast(`${raceNum}Rの投票を締め切りました！着順の入力が可能です。`);
-                isRaceLocked = true;
-                fetchActiveRace(raceNum);
-            } catch(e) {}
         }
-    };
 
-    if (btnLockRace) btnLockRace.addEventListener('click', handleRaceLock);
-    if (adminQuickLockBtn) adminQuickLockBtn.addEventListener('click', handleRaceLock);
-
-    function updateLiveRanking() {
-        // No-op or kept for compatibility
-    }
-
-    if (btnResetRecord) btnResetRecord.addEventListener('click', () => {
-        currentRaceResults = [];
-        renderRecordView();
-    });
-
-    if (btnSubmitRecord) btnSubmitRecord.addEventListener('click', async () => {
-        const raceNum = parseInt(adminRaceNumberSelect.value);
-        const raceData = activeRaces[raceNum];
-        const allowedBetType = (raceData && raceData.active) ? raceData.allowed_bet_type : '';
-        
-        if (allowedBetType === 'two_teams') {
-            if (currentRaceResults.length !== 1) return;
-        } else {
-            if (currentRaceResults.length !== currentRacePlayers.length) return;
+        if (btnRefreshCommissionLog) {
+            btnRefreshCommissionLog.addEventListener('click', () => {
+                loadCommissionLog();
+                showToast('ログを更新しました');
+            });
         }
-        try {
+
+        // === Admin: Voters Bets Status ===
+        function loadVotersBets() {
+            if (!votersBetsContainer) return;
             const raceNum = parseInt(adminRaceNumberSelect.value);
-            await apiCall('/api/races', 'POST', { 
-                race_number: raceNum,
-                results: currentRaceResults 
-            });
-            showToast('着順を確定し、配当を計算しました！');
-            await fetchActiveRace();
-            if (currentVoter) fetchMyVotes();
-
-            const selectEl = document.getElementById('admin-results-race-select');
-            if (selectEl) {
-                selectEl.value = raceNum;
-                if (typeof loadAdminRaceResults === 'function') loadAdminRaceResults();
-            }
-            loadCompletedRacesHistory();
-
-            navBtns.forEach(b => {
-                if(b.getAttribute('data-target') === 'view-stats') b.classList.add('active');
-                else b.classList.remove('active');
-            });
-            views.forEach(v => {
-                if(v.id === 'view-stats') v.classList.add('active');
-                else v.classList.remove('active');
-            });
-            loadStats();
-        } catch(e) {}
-    });
-
-    // === Stats Logic ===
-    async function loadStats() {
-        try {
-            const data = await apiCall('/api/stats');
-            const stats = data.stats.sort((a, b) => b.point_rate - a.point_rate);
             
-            statsTableBody.innerHTML = stats.map(s => `
-                <tr>
-                    <td>${s.name}</td>
-                    <td>${s.races_played}</td>
-                    <td>${s.total_points}</td>
-                    <td>${s.point_rate.toFixed(2)}</td>
-                    <td>${(s.win_rate * 100).toFixed(1)}%</td>
-                    <td>${(s.quinella_rate * 100).toFixed(1)}%</td>
-                    <td>${(s.exacta_rate * 100).toFixed(1)}%</td>
-                </tr>
-            `).join('');
-        } catch(e) {}
-    }
+            db.ref('/').once('value', snapshot => {
+                const data = snapshot.val() || {};
+                const dbVoters = data.voters || {};
+                const dbVotes = data.votes || {};
+                const race = data.races ? data.races[raceNum] : null;
 
-    // === Commission Log Logic ===
-    async function loadCommissionLog() {
-        if (!isAdminAuthenticated) return;
-        try {
-            const data = await apiCall('/api/admin/commission_log');
-            const log = data.log;
-            
-            let totalBetsAll = 0;
-            let totalCommissionAll = 0;
-            let totalCarryoverCommissionAll = 0;
-            let totalPayoutAll = 0;
-            let totalSurplusAll = 0;
-            
-            commissionLogTableBody.innerHTML = log.map(item => {
-                totalBetsAll += item.total_bets;
-                totalCommissionAll += item.bets_commission;
-                totalCarryoverCommissionAll += item.carryover_commission;
-                totalPayoutAll += item.total_payout;
-                totalSurplusAll += item.surplus;
+                const reveal = data.settings ? !!data.settings.reveal : false;
+                const vIds = Object.keys(dbVoters);
                 
-                const statusBadge = item.is_resolved 
-                    ? `<span class="badge success" style="background: rgba(0,255,136,0.15); color: var(--success); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">確定済</span>`
-                    : `<span class="badge warning" style="background: rgba(255,170,0,0.15); color: var(--warning); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">投票受付中/未確定</span>`;
-                    
-                return `
-                    <tr style="border-bottom: 1px solid var(--glass-border);">
-                        <td style="padding: 1rem; font-weight: bold;">${item.race_number}R</td>
-                        <td style="padding: 1rem;">${item.total_bets.toLocaleString()} G</td>
-                        <td style="padding: 1rem; color: var(--primary); font-weight: bold;">${item.bets_commission.toLocaleString()} G</td>
-                        <td style="padding: 1rem; color: var(--warning); font-weight: bold;">${item.carryover_commission.toLocaleString()} G</td>
-                        <td style="padding: 1rem;">${item.total_payout.toLocaleString()} G</td>
-                        <td style="padding: 1rem; color: var(--success); font-weight: bold;">${item.surplus.toLocaleString()} G</td>
-                        <td style="padding: 1rem;">${statusBadge}</td>
-                    </tr>
-                `;
-            }).join('');
-            
-            commissionLogTableFoot.innerHTML = `
-                <tr>
-                    <td style="padding: 1.25rem 1rem;">総合計</td>
-                    <td style="padding: 1.25rem 1rem;">${totalBetsAll.toLocaleString()} G</td>
-                    <td style="padding: 1.25rem 1rem; color: var(--primary); font-size: 1.1rem; text-shadow: 0 0 10px rgba(0,240,255,0.3);">${totalCommissionAll.toLocaleString()} G</td>
-                    <td style="padding: 1.25rem 1rem; color: var(--warning); font-size: 1.1rem; text-shadow: 0 0 10px rgba(255,170,0,0.3);">${totalCarryoverCommissionAll.toLocaleString()} G</td>
-                    <td style="padding: 1.25rem 1rem;">${totalPayoutAll.toLocaleString()} G</td>
-                    <td style="padding: 1.25rem 1rem; color: var(--success); font-size: 1.1rem; text-shadow: 0 0 10px rgba(0,255,136,0.3);">${totalSurplusAll.toLocaleString()} G</td>
-                    <td style="padding: 1.25rem 1rem;">-</td>
-                </tr>
-            `;
-        } catch (e) {
-            console.error("Error in loadCommissionLog:", e);
-        }
-    }
+                if (vIds.length === 0) {
+                    votersBetsContainer.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--text-muted);">投票者が登録されていません</div>`;
+                    return;
+                }
 
-    if (btnRefreshCommissionLog) {
-        btnRefreshCommissionLog.addEventListener('click', () => {
-            loadCommissionLog();
-            showToast('集計ログを最新に更新しました！');
-        });
-    }
-
-    // === Voters Bets Logic ===
-    async function loadVotersBets() {
-        if (!isAdminAuthenticated) return;
-        try {
-            const data = await apiCall('/api/admin/voters_bets');
-            const votersBets = data.voters_bets;
-            
-            const betTypeNames = {
-                'win': '単勝',
-                'two_teams': '2チーム',
-                'exacta': '2連単',
-                'trifecta': '3連単'
-            };
-            
-            votersBetsContainer.innerHTML = votersBets.map(vb => {
-                let votesTableHtml = '';
-                if (vb.votes && vb.votes.length > 0) {
-                    const rowsHtml = vb.votes.map(vote => {
-                        const betTypeName = betTypeNames[vote.bet_type] || '未指定';
-                        
-                        let resultText = '';
-                        if (vote.is_resolved) {
-                           resultText = vote.is_hit 
-                               ? `<span style="color: var(--success); font-weight: bold;">的中! (+${vote.payout.toLocaleString()} G)</span>`
-                               : `<span style="color: #ff4d4d;">不的中</span>`;
-                        } else {
-                            resultText = `<span style="color: var(--warning);">未確定</span>`;
+                votersBetsContainer.innerHTML = vIds.map(vId => {
+                    const v = dbVoters[vId];
+                    const vVotes = [];
+                    Object.keys(dbVotes).forEach(voteId => {
+                        const vote = dbVotes[voteId];
+                        if (vote.voter_name === v.name && vote.race_number === raceNum && !vote.is_resolved) {
+                            vVotes.push(vote);
                         }
-                        
-                        return `
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td style="padding: 0.75rem; font-weight: bold;">${vote.race_number}R</td>
-                                <td style="padding: 0.75rem;">${betTypeName}</td>
-                                <td style="padding: 0.75rem; font-family: monospace; font-size: 0.95rem; color: var(--primary); font-weight: bold;">${vote.display_pattern}</td>
-                                <td style="padding: 0.75rem;">${vote.amount.toLocaleString()} G</td>
-                                <td style="padding: 0.75rem; font-weight: bold; color: var(--warning);">${vote.odds.toFixed(1)}x</td>
-                                <td style="padding: 0.75rem;">${resultText}</td>
-                            </tr>
-                        `;
-                    }).join('');
-                    
-                    votesTableHtml = `
-                        <div class="table-container" style="overflow-x: auto; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid var(--glass-border); margin-top: 0.5rem;">
-                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                    });
+
+                    let statusBadge = vVotes.length > 0 
+                        ? `<span class="status-badge complete" style="padding:0.25rem 0.75rem; font-size:0.8rem;">🟢 投票完了</span>`
+                        : `<span class="status-badge waiting" style="padding:0.25rem 0.75rem; font-size:0.8rem;">⚪ 投票待ち</span>`;
+
+                    let detailHtml = '';
+                    if (vVotes.length > 0) {
+                        if (reveal) {
+                            detailHtml = `<table class="data-table" style="margin-top:0.5rem; width:100%;">
                                 <thead>
-                                    <tr style="border-bottom: 1px solid var(--glass-border); background: rgba(255,255,255,0.02);">
-                                        <th style="padding: 0.75rem;">レース</th>
-                                        <th style="padding: 0.75rem;">賭け式</th>
-                                        <th style="padding: 0.75rem; color: var(--primary);">買い目</th>
-                                        <th style="padding: 0.75rem;">金額 (G)</th>
-                                        <th style="padding: 0.75rem; color: var(--warning);">オッズ</th>
-                                        <th style="padding: 0.75rem;">状態/結果</th>
+                                    <tr>
+                                        <th>賭け式</th>
+                                        <th>買い目</th>
+                                        <th>金額</th>
+                                        <th>想定オッズ</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    ${rowsHtml}
-                                </tbody>
-                            </table>
-                        </div>
-                    `;
-                } else {
-                    votesTableHtml = `
-                        <div class="text-muted" style="font-size: 0.9rem; padding: 1rem; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px dashed var(--glass-border); text-align: center;">
-                            まだ投票履歴はありません
-                        </div>
-                    `;
-                }
-                
-                return `
-                    <div class="voter-bets-group-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 12px; padding: 1rem 1.25rem;">
-                        <div class="flex-between" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
-                           <h4 style="margin: 0; font-size: 1.1rem; color: #fff; display: flex; align-items: center; gap: 8px;">
-                               👤 <span style="font-weight: bold; color: var(--primary);">${vb.voter_name}</span> の投票状況
-                           </h4>
-                           <div style="font-size: 0.95rem; font-weight: bold;">
-                               合計投票額: <span style="color: var(--warning); font-size: 1.15rem; text-shadow: 0 0 10px rgba(255,170,0,0.2);">${vb.total_amount.toLocaleString()} G</span>
-                           </div>
-                        </div>
-                        ${votesTableHtml}
-                    </div>
-                `;
-            }).join('');
-        } catch (e) {
-            console.error("Error in loadVotersBets:", e);
-        }
-    }
-
-    if (btnRefreshVotersBets) {
-        btnRefreshVotersBets.addEventListener('click', () => {
-            loadVotersBets();
-            showToast('各投票者の投票状況を最新に更新しました！');
-        });
-    }
-
-    // === Completed Races Results & Payout History ===
-    async function loadCompletedRacesHistory() {
-        const container = document.getElementById('completed-races-history-container');
-        if (!container) return;
-        
-        try {
-            const data = await apiCall('/api/admin/races/completed');
-            if (!data.races || data.races.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center text-muted" style="padding: 2.5rem; background: rgba(0,0,0,0.15); border-radius: 12px; border: 1px dashed var(--glass-border);">
-                        確定済みのレース結果はありません
-                    </div>
-                `;
-                return;
-            }
-            
-            const betTypesMap = { 'win': '単勝', 'two_teams': '2チーム', 'exacta': '2連単', 'trifecta': '3連単' };
-            
-            container.innerHTML = data.races.map(r => {
-                const resultsHtml = r.results.map(p => `
-                    <div style="padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.04); border-radius: 6px; font-size: 0.9rem;">
-                        <span style="font-weight: bold; color: var(--primary);">${p.position}着:</span> ${p.player_name}
-                    </div>
-                `).join('');
-                
-                let winnersHtml = '';
-                if (r.winning_voters.length > 0) {
-                    winnersHtml = `
-                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
-                            <thead>
-                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--text-muted);">
-                                    <th style="padding: 0.4rem;">的中者</th>
-                                    <th style="padding: 0.4rem;">買い目</th>
-                                    <th style="padding: 0.4rem;">投票金</th>
-                                    <th style="padding: 0.4rem;">オッズ</th>
-                                    <th style="padding: 0.4rem; color: var(--success);">払い戻し額</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${r.winning_voters.map(w => `
-                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                                        <td style="padding: 0.4rem; font-weight: bold;">${w.voter_name}</td>
-                                        <td style="padding: 0.4rem; color: var(--primary); font-family: monospace;">${w.display_pattern}</td>
-                                        <td style="padding: 0.4rem;">${w.amount} G</td>
-                                        <td style="padding: 0.4rem; color: var(--warning); font-weight: bold;">${w.odds.toFixed(1)}倍</td>
-                                        <td style="padding: 0.4rem; color: var(--success); font-weight: bold;">${w.payout.toLocaleString()} G</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    `;
-                } else {
-                    winnersHtml = `
-                        <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem;">
-                            的中した投票者はいませんでした
-                        </div>
-                    `;
-                }
-                
-                return `
-                    <div class="glass-card" style="background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; animation: fadeIn 0.3s ease; margin-bottom: 1rem;">
-                        <!-- Left Panel: Race ID, Bet Type and Confirmed Ranks -->
-                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                            <h4 style="margin: 0; font-size: 1.2rem; color: #fff; display: flex; align-items: center; justify-content: space-between;">
-                                <span style="font-weight: 900; color: var(--primary);">${r.race_number}R <span style="font-size:0.9rem; font-weight:normal; color:#fff;">確定結果</span></span>
-                                <span style="display: inline-flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 0.85rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 0.2rem 0.6rem; border-radius: 999px;">式別: ${betTypesMap[r.bet_type] || r.bet_type}</span>
-                                    <button type="button" class="glass-btn danger delete-completed-race-btn" data-race-number="${r.race_number}" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">🗑️ 削除</button>
-                                </span>
-                            </h4>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
-                                ${resultsHtml}
-                            </div>
-                        </div>
-                        
-                        <!-- Right Panel: Winners nested details table -->
-                        <div style="display: flex; flex-direction: column; gap: 0.5rem; border-left: 1px dashed rgba(255,255,255,0.1); padding-left: 1.5rem;">
-                            <h4 style="margin: 0; color: var(--success); font-size: 1.05rem; display: flex; align-items: center; gap: 0.4rem;">
-                                💰 的中者・配当一覧
-                            </h4>
-                            <div class="overflow-auto" style="margin-top: 0.5rem;">
-                                ${winnersHtml}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            // Bind delete history events
-            document.querySelectorAll('.delete-completed-race-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const rNum = e.currentTarget.getAttribute('data-race-number');
-                    if (confirm(`${rNum}R の確定結果および投票履歴を完全に削除しますか？`)) {
-                        try {
-                            await apiCall(`/api/races/active?race_number=${rNum}`, 'DELETE');
-                            showToast(`${rNum}R の履歴を完全に削除しました！`);
-                            loadCompletedRacesHistory();
-                            loadCommissionLog();
-                            loadStats();
-                            loadVotersBets();
-                        } catch (err) {
-                            showToast('削除に失敗しました', true);
+                                <tbody>` +
+                                    vVotes.map(vote => `<tr>
+                                        <td>${betTypeNames[vote.bet_type]}</td>
+                                        <td class="neon-text">${vote.display_pattern}</td>
+                                        <td>${vote.amount.toLocaleString()} G</td>
+                                        <td style="color:var(--warning); font-weight:bold;">${vote.odds.toFixed(1)}x</td>
+                                    </tr>`).join('') +
+                                `</tbody>
+                            </table>`;
+                        } else {
+                            detailHtml = `<div style="margin-top:0.5rem; font-size:0.9rem; color:var(--text-muted); font-style:italic;">🙈 投票内容非公開（投票数: ${vVotes.length} 件）</div>`;
                         }
+                    } else {
+                        detailHtml = `<div style="margin-top:0.5rem; font-size:0.9rem; color:var(--text-muted);">まだ投票していません</div>`;
+                    }
+
+                    return `<div class="bet-row" style="flex-direction:column; align-items:stretch; gap:0.25rem; margin-bottom:1rem; padding:1rem;">
+                        <div class="flex-between">
+                            <span style="font-weight:bold; font-size:1.1rem; color:#fff;">${v.name}</span>
+                            ${statusBadge}
+                        </div>
+                        ${detailHtml}
+                    </div>`;
+                }).join('');
+            });
+        }
+
+        if (btnRefreshVotersBets) {
+            btnRefreshVotersBets.addEventListener('click', () => {
+                loadVotersBets();
+                showToast('投票状況を更新しました');
+            });
+        }
+
+        // === Admin: Player Baseline Stats (Firebase) ===
+        if (statsPlayerSelect) {
+            statsPlayerSelect.addEventListener('change', () => {
+                const pid = statsPlayerSelect.value;
+                if (!pid) {
+                    playerStatsFormContainer.style.display = 'none';
+                    return;
+                }
+                playerStatsFormContainer.style.display = 'block';
+                
+                db.ref(`player_stats/${pid}`).once('value', snapshot => {
+                    const val = snapshot.val() || {};
+                    statsRacesPlayed.value = val.races_played || 0;
+                    statsTotalPoints.value = val.total_points || 0;
+                    statsFirstPlaces.value = val.first_places || 0;
+                    statsSecondPlaces.value = val.second_places || 0;
+                    statsThirdPlaces.value = val.third_places || 0;
+                    statsFourthPlaces.value = val.fourth_places || 0;
+                    statsFifthPlaces.value = val.fifth_places || 0;
+                    statsSixthPlaces.value = val.sixth_places || 0;
+                    statsUnplaced.value = val.unplaced || 0;
+                    statsPointRate.value = val.point_rate || 0.0;
+                    
+                    renderPlayerRaceHistory(pid);
+                });
+            });
+        }
+
+        function renderStatsPlayerSelect() {
+            if (!statsPlayerSelect) return;
+            const curVal = statsPlayerSelect.value;
+            statsPlayerSelect.innerHTML = `<option value="">-- 選手を選択してください --</option>` + 
+                players.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            statsPlayerSelect.value = curVal;
+        }
+
+        if (btnSavePlayerStats) {
+            btnSavePlayerStats.addEventListener('click', () => {
+                const pid = statsPlayerSelect.value;
+                if (!pid) return;
+
+                const stats = {
+                    races_played: parseInt(statsRacesPlayed.value) || 0,
+                    total_points: parseInt(statsTotalPoints.value) || 0,
+                    first_places: parseInt(statsFirstPlaces.value) || 0,
+                    second_places: parseInt(statsSecondPlaces.value) || 0,
+                    third_places: parseInt(statsThirdPlaces.value) || 0,
+                    fourth_places: parseInt(statsFourthPlaces.value) || 0,
+                    fifth_places: parseInt(statsFifthPlaces.value) || 0,
+                    sixth_places: parseInt(statsSixthPlaces.value) || 0,
+                    unplaced: parseInt(statsUnplaced.value) || 0,
+                    point_rate: parseFloat(statsPointRate.value) || 0.0
+                };
+
+                db.ref(`player_stats/${pid}`).set(stats, err => {
+                    if (err) {
+                        showToast('保存に失敗しました', true);
+                    } else {
+                        showToast('戦績を保存しました！');
                     }
                 });
             });
-        } catch(e) {
-            console.error("Failed to load completed races history:", e);
         }
-    }
 
-    const btnRefreshCompletedHistory = document.getElementById('btn-refresh-completed-history');
-    if (btnRefreshCompletedHistory) {
-        btnRefreshCompletedHistory.addEventListener('click', () => {
-            loadCompletedRacesHistory();
-            showToast('確定レース結果の履歴を最新に更新しました！');
-        });
-    }
-
-    window._loadCompletedRacesHistory = loadCompletedRacesHistory;
-    // Expose helpers globally to allow HTML to invoke actions directly and bypass form submit issues
-    window._apiCall = apiCall;
-    window._loadVoters = loadVoters;
-    window._loadPlayers = loadPlayers;
-    window._loadCommissionLog = loadCommissionLog;
-    window._loadVotersBets = loadVotersBets;
-    window._fetchActiveRace = fetchActiveRace;
-    window._fetchMyVotes = fetchMyVotes;
-    window._loadStats = loadStats;
-    window._showToast = showToast;
-    
-    window._setAdminAuth = (val) => {
-        isAdminAuthenticated = val;
-        if (val) {
-            loadPlayers();
-            loadVoters();
-            loadCommissionLog();
-            renderActiveRacesList();
-            loadVotersBets();
-            loadCompletedRacesHistory();
-            if (typeof loadAdminRaceResults === 'function') loadAdminRaceResults();
-        }
-    };
-
-    function updateCarryoverUI() {
-        const voterBanner = document.getElementById('voter-carryover-banner');
-        const voterAmount = document.getElementById('voter-carryover-amount');
-        const adminBanner = document.getElementById('admin-carryover-banner');
-        const adminAmount = document.getElementById('admin-carryover-amount');
-
-        if (currentCarryoverPool > 0) {
-            const poolBeforeDeduction = currentCarryoverPool;
-            const poolAfterDeduction = currentCarryoverPool * 0.90;
-
-            if (voterBanner && voterAmount) {
-                voterBanner.style.display = 'block';
-                voterAmount.textContent = `${Math.floor(poolAfterDeduction).toLocaleString()} G`;
-            }
-            if (adminBanner && adminAmount) {
-                adminBanner.style.display = 'block';
-                adminAmount.textContent = `${Math.floor(poolBeforeDeduction).toLocaleString()} G`;
-            }
-        } else {
-            if (voterBanner) voterBanner.style.display = 'none';
-            if (adminBanner) adminBanner.style.display = 'none';
-        }
-    }
-
-    window.resetCarryoverPool = async () => {
-        if (!confirm('キャリーオーバープールを 0 G にリセットしますか？')) return;
-        try {
-            const res = await fetch('/api/admin/carryover', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: 0.0 })
+        if (btnResetPlayerStats) {
+            btnResetPlayerStats.addEventListener('click', () => {
+                const pid = statsPlayerSelect.value;
+                if (!pid) return;
+                if (confirm('戦績データをリセットしてもよろしいですか？')) {
+                    db.ref(`player_stats/${pid}`).remove(() => {
+                        statsRacesPlayed.value = 0;
+                        statsTotalPoints.value = 0;
+                        statsFirstPlaces.value = 0;
+                        statsSecondPlaces.value = 0;
+                        statsThirdPlaces.value = 0;
+                        statsFourthPlaces.value = 0;
+                        statsFifthPlaces.value = 0;
+                        statsSixthPlaces.value = 0;
+                        statsUnplaced.value = 0;
+                        statsPointRate.value = 0.0;
+                        showToast('リセットしました');
+                    });
+                }
             });
-            if (res.ok) {
-                showToast('キャリーオーバープールをリセットしました！');
-                currentCarryoverPool = 0.0;
-                updateCarryoverUI();
-                // Refresh active race view so odds are recalculated on screen
-                const rNum = voterRaceNumberSelect ? voterRaceNumberSelect.value : 1;
-                fetchActiveRace(rNum);
-            } else {
-                showToast('キャリーオーバーのリセットに失敗しました。', true);
-            }
-        } catch(e) {
-            showToast('サーバーに接続できません。', true);
         }
-    };
 
-    window._setCurrentVoter = (voter) => {
-        currentVoter = voter;
-        localStorage.setItem('currentVoter', JSON.stringify(voter));
-        displayVoterName.textContent = voter.name;
-        voterAuthContainer.style.display = 'none';
-        voterDashboard.style.display = 'block';
-        
-        // Reset cart and mark combinations for the logged in user
-        votingCart = [];
-        selectedMarkCombination = [[], [], []];
-        if (typeof updateVoteMarkSheet === 'function') updateVoteMarkSheet();
-        if (typeof renderCartTable === 'function') renderCartTable();
-        
-        fetchActiveRace();
-        fetchMyVotes();
-    };
+        function renderPlayerRaceHistory(pid) {
+            if (!statsHistoryList) return;
+            db.ref('races').once('value', snapshot => {
+                const data = snapshot.val() || {};
+                const history = [];
+                
+                Object.keys(data).forEach(raceNum => {
+                    const r = data[raceNum];
+                    if (r.resolved && r.results && r.results.includes(pid)) {
+                        const rank = r.results.indexOf(pid) + 1;
+                        history.push({
+                            race_number: raceNum,
+                            rank: rank,
+                            bet_type: r.allowed_bet_type
+                        });
+                    }
+                });
 
-    // Init
-    if (isAdminAuthenticated) {
-        adminAuthContainer.style.display = 'none';
-        adminDashboard.style.display = 'block';
-        loadPlayers();
-        loadVoters();
-        renderActiveRacesList();
-        loadVotersBets();
-        loadCompletedRacesHistory();
+                if (history.length === 0) {
+                    statsHistoryContainer.style.display = 'none';
+                    statsHistoryList.innerHTML = '';
+                    return;
+                }
+
+                statsHistoryContainer.style.display = 'block';
+                statsHistoryList.innerHTML = history.sort((a,b)=>b.race_number - a.race_number).map(h => 
+                    `<div class="bet-row flex-between" style="padding:0.5rem 1rem;">
+                        <strong>${h.race_number}R</strong>
+                        <span>結果: <strong class="neon-text">${h.rank} 着</strong></span>
+                        <span style="font-size:0.85rem; color:var(--text-muted);">(${betTypeNames[h.bet_type]})</span>
+                    </div>`
+                ).join('');
+            });
+        }
+
+        // === Admin: Completed Races History ===
+        function loadCompletedRacesHistory() {
+            const container = document.getElementById('completed-races-history-container');
+            if (!container) return;
+
+            db.ref('/').once('value', snapshot => {
+                const data = snapshot.val() || {};
+                const races = data.races || {};
+                const votes = data.votes || {};
+                const resolvedList = Object.keys(races)
+                    .map(num => races[num])
+                    .filter(r => r.resolved)
+                    .sort((a,b) => b.race_number - a.race_number);
+
+                if (resolvedList.length === 0) {
+                    container.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--text-muted);">過去のレース履歴はありません</div>`;
+                    return;
+                }
+
+                container.innerHTML = resolvedList.map(r => {
+                    // このレースの配当・的中者
+                    const rVotes = [];
+                    Object.keys(votes).forEach(vid => {
+                        const v = votes[vid];
+                        if (v.race_number === r.race_number) {
+                            rVotes.push(v);
+                        }
+                    });
+
+                    const winners = rVotes.filter(v => v.is_hit && v.payout > 0);
+                    const winnerHtml = winners.length > 0 
+                        ? winners.map(w => `<div class="bet-row" style="padding:0.5rem; font-size:0.9rem;">
+                            <span>👑 <strong>${w.voter_name}</strong>: ${w.display_pattern}</span>
+                            <span style="margin-left:auto; color:var(--success); font-weight:bold;">+${w.payout.toLocaleString()} G</span>
+                        </div>`).join('')
+                        : `<div style="padding:0.5rem; font-size:0.9rem; color:var(--text-muted); font-style:italic;">的中者なし (キャリーオーバーへ蓄積されました)</div>`;
+
+                    // 着順の枠順マッピング
+                    const rankHtml = r.results.map((pid, idx) => {
+                        const pIdx = r.player_ids.indexOf(pid) + 1;
+                        const p = players.find(x => x.id === pid);
+                        return `<span class="rank-slot" style="padding: 0.25rem 0.5rem; font-size:0.8rem;">
+                            ${idx+1}着: <span class="runner-boat-badge boat-badge-${pIdx}" style="width:16px; height:16px; font-size:0.7rem; border-radius:3px; margin:0 2px;">${pIdx}</span> ${p ? p.name : ''}
+                        </span>`;
+                    }).join(' ');
+
+                    return `<div class="glass-card" style="padding:1.25rem; margin-bottom:1rem; border-color:rgba(255,255,255,0.05);">
+                        <div class="flex-between" style="border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.5rem; margin-bottom:0.5rem;">
+                            <strong style="font-size:1.15rem; color:var(--primary);">${r.race_number}R 結果確定</strong>
+                            <span style="font-size:0.85rem; color:var(--text-muted);">形式: ${betTypeNames[r.allowed_bet_type]}</span>
+                        </div>
+                        <div style="margin-bottom:0.75rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
+                            ${rankHtml}
+                        </div>
+                        <div style="font-weight:bold; font-size:0.85rem; color:var(--text-muted); margin-bottom:0.25rem;">払戻分配・的中結果:</div>
+                        <div style="background:rgba(0,0,0,0.2); border-radius:8px; padding:0.25rem;">
+                            ${winnerHtml}
+                        </div>
+                    </div>`;
+                }).join('');
+            });
+        }
+
+        // === Voter: Auth & Session Management ===
+        if (voterAuthForm) {
+            voterAuthForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = voterLoginNameInput.value.trim();
+                const pass = voterLoginPassInput.value;
+                if (!name || !pass) return;
+
+                db.ref('voters').once('value', snapshot => {
+                    const data = snapshot.val() || {};
+                    const voterId = Object.keys(data).find(k => data[k].name === name && data[k].password === pass);
+                    if (voterId) {
+                        const voterObj = { id: voterId, name: data[voterId].name, balance: data[voterId].balance };
+                        window._setCurrentVoter(voterObj);
+                        showToast(`${name}さん、ログインしました！`);
+                        voterLoginPassInput.value = '';
+                    } else {
+                        showToast('ログイン情報が正しくありません', true);
+                    }
+                });
+            });
+        }
+
+        if (btnVoterLogout) {
+            btnVoterLogout.addEventListener('click', () => {
+                // マークシートとカートを完全にクリア
+                votingCart = [];
+                selectedMarkCombination = [[], [], []];
+                document.querySelectorAll('.cell-select-btn').forEach(btn => btn.classList.remove('active'));
+                
+                window._setCurrentVoter(null);
+                showToast('ログアウトしました');
+            });
+        }
+
+        // === Voter: Grid Mark Sheet UI Generation ===
+        function renderGridMarkSheet() {
+            const container = document.getElementById('mark-sheet-table-container');
+            if (!container) return;
+
+            // リセット
+            selectedMarkCombination = [[], [], []];
+            
+            const placesCount = (allowedBetType === 'trifecta') ? 3 : ((allowedBetType === 'exacta') ? 2 : 1);
+            
+            let headerCols = '';
+            for (let p = 1; p <= placesCount; p++) {
+                headerCols += `<div class="mark-sheet-col col-place">${p}着</div>`;
+            }
+
+            let rowsHtml = '';
+            if (allowedBetType === 'two_teams') {
+                // 2チーム専用マークシート
+                const teamsList = [
+                    { id: 1, name: '赤チーム (奇数枠艇)', badge: 'boat-badge-3' },
+                    { id: 2, name: '青チーム (偶数枠艇)', badge: 'boat-badge-4' }
+                ];
+                
+                rowsHtml = teamsList.map(t => {
+                    return `<div class="mark-sheet-row">
+                        <div class="mark-sheet-col col-runner">
+                            <span class="runner-boat-badge ${t.badge}" style="width:24px; height:24px; font-size:0.8rem;">T</span>
+                            <span class="runner-name-text" style="font-size:0.95rem;">${t.name}</span>
+                        </div>
+                        <div class="mark-sheet-col col-place">
+                            <button type="button" class="cell-select-btn cell-team-btn" data-val="${t.id}" data-col="0">ー</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            } else {
+                // 通常マークシート
+                rowsHtml = currentRacePlayers.map((p, idx) => {
+                    const boatNum = idx + 1;
+                    const badgeClass = `boat-badge-${boatNum}`;
+                    
+                    let cells = '';
+                    for (let c = 0; c < placesCount; c++) {
+                        cells += `<div class="mark-sheet-col col-place">
+                            <button type="button" class="cell-select-btn cell-runner-btn" data-pid="${p.id}" data-boat="${boatNum}" data-col="${c}">ー</button>
+                        </div>`;
+                    }
+
+                    return `<div class="mark-sheet-row">
+                        <div class="mark-sheet-col col-runner">
+                            <span class="runner-boat-badge ${badgeClass}">${boatNum}</span>
+                            <span class="runner-name-text">${p.name}</span>
+                        </div>
+                        ${cells}
+                    </div>`;
+                }).join('');
+            }
+
+            container.innerHTML = `
+                <div class="mark-sheet-table">
+                    <div class="mark-sheet-row header">
+                        <div class="mark-sheet-col col-runner">艇番 / 選手名</div>
+                        ${headerCols}
+                    </div>
+                    ${rowsHtml}
+                </div>
+            `;
+
+            // イベントリスナー登録
+            document.querySelectorAll('.cell-select-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const colIdx = parseInt(btn.getAttribute('data-col'));
+                    const isTeam = btn.classList.contains('cell-team-btn');
+                    
+                    if (isTeam) {
+                        const val = parseInt(btn.getAttribute('data-val'));
+                        toggleTeamSelect(btn, val);
+                    } else {
+                        const pid = btn.getAttribute('data-pid');
+                        const boatNum = parseInt(btn.getAttribute('data-boat'));
+                        toggleRunnerSelect(btn, pid, boatNum, colIdx);
+                    }
+                });
+            });
+        }
+
+        function toggleTeamSelect(btn, teamVal) {
+            const isActive = btn.classList.contains('active');
+            // 全解除
+            document.querySelectorAll('.cell-team-btn').forEach(b => b.classList.remove('active'));
+            selectedMarkCombination = [[], [], []];
+
+            if (!isActive) {
+                btn.classList.add('active');
+                selectedMarkCombination[0] = [teamVal];
+            }
+            updateOddsValues();
+        }
+
+        function toggleRunnerSelect(btn, pid, boatNum, colIdx) {
+            const isActive = btn.classList.contains('active');
+            
+            if (isActive) {
+                btn.classList.remove('active');
+                selectedMarkCombination[colIdx] = selectedMarkCombination[colIdx].filter(x => x !== pid);
+            } else {
+                // 排他選択ルール：同じ着順の列は1人しか選べない（シングルベットのみ）
+                document.querySelectorAll(`.cell-runner-btn[data-col="${colIdx}"]`).forEach(b => {
+                    b.classList.remove('active');
+                });
+                // 他の着順列で同じ選手が選ばれていたら解除する（同じ選手は複数着順に選べない）
+                document.querySelectorAll(`.cell-runner-btn[data-pid="${pid}"]`).forEach(b => {
+                    b.classList.remove('active');
+                });
+                for (let c = 0; c < 3; c++) {
+                    selectedMarkCombination[c] = selectedMarkCombination[c].filter(x => x !== pid);
+                }
+
+                btn.classList.add('active');
+                selectedMarkCombination[colIdx] = [pid];
+            }
+            updateOddsValues();
+        }
+
+        // オッズ表示のリアルタイム更新
+        function updateOddsValues() {
+            const valDisplay = document.getElementById('selected-bet-odds-val');
+            const patternDisplay = document.getElementById('selected-bet-pattern-display');
+            const btnAddCart = document.getElementById('btn-add-to-cart');
+
+            const placesCount = (allowedBetType === 'trifecta') ? 3 : ((allowedBetType === 'exacta') ? 2 : 1);
+            
+            // 選択チェック
+            let isComplete = true;
+            for (let c = 0; c < placesCount; c++) {
+                if (selectedMarkCombination[c].length === 0) {
+                    isComplete = false;
+                    break;
+                }
+            }
+
+            if (!isComplete) {
+                if (valDisplay) valDisplay.textContent = "-";
+                if (patternDisplay) patternDisplay.textContent = "マークシートを選択してください";
+                if (btnAddCart) btnAddCart.disabled = true;
+                return;
+            }
+
+            if (btnAddCart) btnAddCart.disabled = false;
+
+            // オッズ取得
+            let patternStr = "";
+            let displayStr = "";
+            let oddsVal = 0.0;
+
+            if (allowedBetType === 'two_teams') {
+                const teamVal = selectedMarkCombination[0][0];
+                patternStr = JSON.stringify([teamVal]);
+                displayStr = teamVal === 1 ? '赤チーム (1)' : '青チーム (2)';
+            } else {
+                const pids = selectedMarkCombination.slice(0, placesCount).map(arr => arr[0]);
+                const boatIdxs = pids.map(pid => currentRacePlayers.findIndex(x => x.id === pid) + 1);
+                patternStr = JSON.stringify(pids);
+                displayStr = boatIdxs.join(' - ');
+            }
+
+            // オッズ計算
+            const pool = currentPools[patternStr] || 0.0;
+            const RETURN_RATE = 0.90;
+            const addedCarryover = currentCarryoverPool * 0.90;
+            
+            if (currentTotalBets > 0 && pool > 0) {
+                oddsVal = ((currentTotalBets * RETURN_RATE) + addedCarryover) / pool;
+            } else {
+                if (allowedBetType === 'two_teams') {
+                    oddsVal = addedCarryover > 0 ? ((100.0 * RETURN_RATE) + addedCarryover) / 100.0 : 1.8;
+                } else {
+                    oddsVal = ((100.0 * RETURN_RATE) + addedCarryover) / 100.0;
+                }
+            }
+
+            const roundedOdds = Math.round(oddsVal * 10) / 10;
+
+            if (patternDisplay) {
+                if (isOddsHidden) {
+                    patternDisplay.innerHTML = `<span style="color:var(--text-muted); font-size:0.9rem;">(オッズ非表示中)</span><br><strong style="color:var(--primary); font-size:1.25rem;">${displayStr}</strong>`;
+                } else {
+                    patternDisplay.innerHTML = `<strong style="color:var(--primary); font-size:1.25rem;">${displayStr}</strong>`;
+                }
+            }
+
+            if (valDisplay) {
+                if (isOddsHidden) {
+                    valDisplay.textContent = "🔒";
+                } else {
+                    valDisplay.textContent = roundedOdds.toFixed(1) + "x";
+                }
+            }
+        }
+
+        // === Voter: Cart Logic ===
+        const btnAddCart = document.getElementById('btn-add-to-cart');
+        const betAmountInput = document.getElementById('bet-amount');
+
+        if (btnAddCart) {
+            btnAddCart.addEventListener('click', () => {
+                const amt = parseInt(betAmountInput.value);
+                if (isNaN(amt) || amt <= 0) {
+                    showToast('有効な購入金額を入力してください', true);
+                    return;
+                }
+                if (amt < 100) {
+                    showToast('最低購入金額は 100 G です', true);
+                    return;
+                }
+
+                // 選択データ
+                const placesCount = (allowedBetType === 'trifecta') ? 3 : ((allowedBetType === 'exacta') ? 2 : 1);
+                let patternStr = "";
+                let displayStr = "";
+                let rawPattern = [];
+
+                if (allowedBetType === 'two_teams') {
+                    const teamVal = selectedMarkCombination[0][0];
+                    rawPattern = [teamVal];
+                    patternStr = JSON.stringify([teamVal]);
+                    displayStr = teamVal === 1 ? '赤チーム' : '青チーム';
+                } else {
+                    const pids = selectedMarkCombination.slice(0, placesCount).map(arr => arr[0]);
+                    rawPattern = pids;
+                    const boatIdxs = pids.map(pid => currentRacePlayers.findIndex(x => x.id === pid) + 1);
+                    patternStr = JSON.stringify(pids);
+                    displayStr = boatIdxs.join(' - ');
+                }
+
+                // 重複確認
+                const existIdx = votingCart.findIndex(item => item.display_pattern === displayStr);
+                if (existIdx !== -1) {
+                    votingCart[existIdx].amount += amt;
+                } else {
+                    votingCart.push({
+                        bet_type: allowedBetType,
+                        pattern: rawPattern,
+                        display_pattern: displayStr,
+                        amount: amt
+                    });
+                }
+
+                showToast('マークシートを買い目リストに追加しました！');
+                
+                // マークシートクリア
+                selectedMarkCombination = [[], [], []];
+                document.querySelectorAll('.cell-select-btn').forEach(btn => btn.classList.remove('active'));
+
+                renderCartItems();
+                updateOddsValues();
+            });
+        }
+
+        // クイック金額入力
+        document.querySelectorAll('.quick-amt-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const addVal = parseInt(btn.getAttribute('data-val'));
+                const curVal = parseInt(betAmountInput.value) || 0;
+                betAmountInput.value = curVal + addVal;
+            });
+        });
+
+        const btnClearAmt = document.getElementById('btn-clear-amt');
+        if (btnClearAmt) {
+            btnClearAmt.addEventListener('click', () => {
+                betAmountInput.value = 100;
+            });
+        }
+
+        function renderCartItems() {
+            const tbody = document.getElementById('cart-items-tbody');
+            const cartSection = document.getElementById('cart-list-section');
+            const btnSubmit = document.getElementById('btn-submit-cart');
+
+            if (!tbody) return;
+
+            if (votingCart.length === 0) {
+                cartSection.style.display = 'none';
+                if (btnSubmit) btnSubmit.disabled = true;
+                return;
+            }
+
+            cartSection.style.display = 'block';
+            if (btnSubmit) btnSubmit.disabled = false;
+
+            tbody.innerHTML = votingCart.map((item, idx) => {
+                // 想定オッズの計算（買い目リスト用）
+                const patternStr = JSON.stringify(item.pattern);
+                const pool = currentPools[patternStr] || 0.0;
+                const RETURN_RATE = 0.90;
+                const addedCarryover = currentCarryoverPool * 0.90;
+                
+                let oddsVal = 0.0;
+                if (currentTotalBets > 0 && pool > 0) {
+                    oddsVal = ((currentTotalBets * RETURN_RATE) + addedCarryover) / pool;
+                } else {
+                    if (item.bet_type === 'two_teams') {
+                        oddsVal = addedCarryover > 0 ? ((100.0 * RETURN_RATE) + addedCarryover) / 100.0 : 1.8;
+                    } else {
+                        oddsVal = ((100.0 * RETURN_RATE) + addedCarryover) / 100.0;
+                    }
+                }
+                const roundedOdds = Math.round(oddsVal * 10) / 10;
+                const expectedPayout = Math.floor(item.amount * roundedOdds);
+
+                const displayOdds = isOddsHidden ? "非表示" : `${roundedOdds.toFixed(1)}x`;
+                const displayPayout = isOddsHidden ? "非表示" : `${expectedPayout.toLocaleString()} G`;
+
+                return `<tr class="cart-item-row">
+                    <td class="neon-text" style="font-weight:bold; font-size:1.15rem;">${item.display_pattern}</td>
+                    <td>${betTypeNames[item.bet_type]}</td>
+                    <td>${item.display_pattern}</td>
+                    <td>${item.amount.toLocaleString()} G</td>
+                    <td style="color:var(--warning); font-weight:bold;">${displayOdds}</td>
+                    <td style="color:var(--success); font-weight:bold;">${displayPayout}</td>
+                    <td>
+                        <button type="button" class="glass-btn danger btn-delete-cart" data-idx="${idx}" style="padding:0.4rem 0.8rem; font-size:0.8rem;">削除</button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            document.querySelectorAll('.btn-delete-cart').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-idx'));
+                    votingCart.splice(idx, 1);
+                    renderCartItems();
+                });
+            });
+        }
+
+        // 投票確定（送信）
+        const btnSubmitCart = document.getElementById('btn-submit-cart');
+        if (btnSubmitCart) {
+            btnSubmitCart.addEventListener('click', () => {
+                if (votingCart.length === 0) return;
+                if (isRaceLocked) {
+                    showToast('このレースは投票を締め切りました', true);
+                    return;
+                }
+
+                const raceNum = parseInt(voterRaceNumberSelect.value);
+                const totalCost = votingCart.reduce((sum, item) => sum + item.amount, 0);
+
+                if (currentVoter.balance < totalCost) {
+                    showToast(`残高が不足しています (必要: ${totalCost} G, 所持: ${currentVoter.balance} G)`, true);
+                    return;
+                }
+
+                if (!confirm(`合計 ${totalCost.toLocaleString()} G の投票を送信します。よ里しいですか？`)) {
+                    return;
+                }
+
+                // 残高の引き落とし
+                const newBalance = currentVoter.balance - totalCost;
+                
+                // 投票をFirebaseに送信
+                const votesRef = db.ref('votes');
+                const updates = {};
+                
+                votingCart.forEach(item => {
+                    // 各投票データの作成
+                    const newVoteKey = votesRef.push().key;
+
+                    // オッズの算出
+                    const patternStr = JSON.stringify(item.pattern);
+                    const pool = currentPools[patternStr] || 0.0;
+                    const RETURN_RATE = 0.90;
+                    const addedCarryover = currentCarryoverPool * 0.90;
+                    
+                    let oddsVal = 0.0;
+                    if (currentTotalBets > 0 && pool > 0) {
+                        oddsVal = ((currentTotalBets * RETURN_RATE) + addedCarryover) / pool;
+                    } else {
+                        if (item.bet_type === 'two_teams') {
+                            oddsVal = addedCarryover > 0 ? ((100.0 * RETURN_RATE) + addedCarryover) / 100.0 : 1.8;
+                        } else {
+                            oddsVal = ((100.0 * RETURN_RATE) + addedCarryover) / 100.0;
+                        }
+                    }
+                    const roundedOdds = Math.round(oddsVal * 10) / 10;
+
+                    updates[`votes/${newVoteKey}`] = {
+                        voter_name: currentVoter.name,
+                        race_number: raceNum,
+                        bet_type: item.bet_type,
+                        pattern: item.pattern,
+                        display_pattern: item.display_pattern,
+                        amount: item.amount,
+                        odds: roundedOdds,
+                        is_resolved: false,
+                        is_hit: false,
+                        payout: 0
+                    };
+                });
+
+                // 残高更新
+                const voterUid = currentVoter.id;
+                updates[`voters/${voterUid}/balance`] = newBalance;
+
+                db.ref().update(updates, err => {
+                    if (err) {
+                        showToast('投票の送信に失敗しました', true);
+                    } else {
+                        showToast('投票を送信しました！');
+                        votingCart = [];
+                        
+                        // 画面リフレッシュ
+                        fetchActiveRace();
+                        fetchMyVotes();
+                        renderCartItems();
+                    }
+                });
+            });
+        }
+
+        // === Voter: My Bets list ===
+        function fetchMyVotes() {
+            if (!myVotesTableBody || !currentVoter) return;
+            const raceNum = parseInt(voterRaceNumberSelect.value);
+
+            db.ref('votes').on('value', snapshot => {
+                const data = snapshot.val() || {};
+                const myVotes = Object.keys(data)
+                    .map(k => data[k])
+                    .filter(v => v.voter_name === currentVoter.name && v.race_number === raceNum && !v.is_resolved);
+
+                myVotesTableBody.innerHTML = myVotes.map(v => {
+                    const expectedPayout = Math.floor(v.amount * v.odds);
+                    const displayOdds = isOddsHidden ? "非表示" : `${v.odds.toFixed(1)}x`;
+                    const displayPayout = isOddsHidden ? "非表示" : `${expectedPayout.toLocaleString()} G`;
+                    
+                    return `<tr>
+                        <td class="neon-text" style="font-weight:bold;">${v.display_pattern}</td>
+                        <td>${betTypeNames[v.bet_type]}</td>
+                        <td>${v.amount.toLocaleString()} G</td>
+                        <td style="color:var(--warning); font-weight:bold;">${displayOdds}</td>
+                        <td style="color:var(--success); font-weight:bold;">${displayPayout}</td>
+                    </tr>`;
+                }).join('');
+            });
+        }
+
+        // === Stats View: Overall History (Firebase) ===
+        function loadStats() {
+            if (!statsTableBody) return;
+            
+            db.ref('/').once('value', snapshot => {
+                const data = snapshot.val() || {};
+                const dbVoters = data.voters || {};
+                const dbVotes = data.votes || {};
+
+                const votersList = Object.keys(dbVoters).map(k => dbVoters[k]);
+
+                statsTableBody.innerHTML = votersList.map(v => {
+                    // このユーザーのすべての確定済みの投票を算出
+                    const resolvedVotes = [];
+                    Object.keys(dbVotes).forEach(vid => {
+                        const vote = dbVotes[vid];
+                        if (vote.voter_name === v.name && vote.is_resolved) {
+                            resolvedVotes.push(vote);
+                        }
+                    });
+
+                    const totalBetsCount = resolvedVotes.length;
+                    const hitBetsCount = resolvedVotes.filter(x => x.is_hit).length;
+                    const hitRate = totalBetsCount > 0 ? (hitBetsCount / totalBetsCount * 100) : 0.0;
+                    
+                    let totalSpent = 0;
+                    let totalPayout = 0;
+                    resolvedVotes.forEach(x => {
+                        totalSpent += x.amount;
+                        totalPayout += x.payout;
+                    });
+                    
+                    const totalProfit = totalPayout - totalSpent;
+                    const profitClass = totalProfit >= 0 ? 'text-success' : 'text-danger';
+                    const profitSign = totalProfit >= 0 ? '+' : '';
+
+                    return `<tr>
+                        <td style="font-size:1.15rem; font-weight:bold;">${v.name}</td>
+                        <td>${(v.balance || 0).toLocaleString()} G</td>
+                        <td>${totalBetsCount} 回</td>
+                        <td style="color:var(--warning); font-weight:bold;">${hitRate.toFixed(1)}%</td>
+                        <td>${totalSpent.toLocaleString()} G</td>
+                        <td>${totalPayout.toLocaleString()} G</td>
+                        <td style="font-weight:bold;" class="${profitClass}">
+                            <span style="color:${totalProfit >= 0 ? 'var(--success)' : 'var(--danger)'}">${profitSign}${totalProfit.toLocaleString()} G</span>
+                        </td>
+                    </tr>`;
+                }).join('');
+            });
+        }
+
+    } catch (globalErr) {
+        console.error("App Initialization Error:", globalErr);
     }
-    if (currentVoter) {
-        displayVoterName.textContent = currentVoter.name;
-        voterAuthContainer.style.display = 'none';
-        voterDashboard.style.display = 'block';
-    }
-    fetchActiveRace();
-    loadStats();
-} catch(err) {
-    console.error('JS CRASH:', err);
-    document.body.insertAdjacentHTML('afterbegin', `<div style="position:fixed;top:0;left:0;right:0;background:#ff0055;color:#fff;padding:1rem;z-index:99999;font-size:1rem;word-break:break-all;">❌ JSエラー: ${err.message} (行: ${err.stack})<br>パスワード「admin」でログインしてください</div>`);
-}
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-} else {
+// ページのDOMロード完了時に初期化を実行
+document.addEventListener('DOMContentLoaded', () => {
     initApp();
-}
+});
