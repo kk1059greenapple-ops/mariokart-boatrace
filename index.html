@@ -99,109 +99,81 @@
         }
     }
 
-    // 投票所 ログイン
+    // 投票所 ログイン（Firebase版）
     async function doVoterLogin() {
         const name = document.getElementById('voter-login-name').value.trim();
         const password = document.getElementById('voter-login-pass').value;
         if (!name || !password) return;
-        try {
-            const res = await fetch('/api/voter/auth', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, password })
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (typeof window._setCurrentVoter === 'function') {
-                    window._setCurrentVoter(data.voter);
-                } else {
-                    document.getElementById('display-voter-name').textContent = data.voter.name;
-                    document.getElementById('voter-auth-container').style.display = 'none';
-                    document.getElementById('voter-dashboard').style.display = 'block';
-                    showToastDirect(`${data.voter.name}さん、ログインしました！`);
-                }
-                document.getElementById('voter-login-pass').value = '';
+        const db = window.db;
+        if (!db) { showToastDirect('データベースに接続できません', true); return; }
+        const snapshot = await db.ref('voters').once('value');
+        const data = snapshot.val() || {};
+        const voterId = Object.keys(data).find(k => data[k].name === name && data[k].password === password);
+        if (voterId) {
+            const voterObj = { id: voterId, name: data[voterId].name, balance: data[voterId].balance };
+            if (typeof window._setCurrentVoter === 'function') {
+                window._setCurrentVoter(voterObj);
             } else {
-                const d = await res.json();
-                showToastDirect(d.error || 'ログイン情報が正しくありません', true);
+                document.getElementById('display-voter-name').textContent = voterObj.name;
+                document.getElementById('voter-auth-container').style.display = 'none';
+                document.getElementById('voter-dashboard').style.display = 'block';
             }
-        } catch(e) {
-            showToastDirect('サーバーに接続できません', true);
+            document.getElementById('voter-login-pass').value = '';
+            showToastDirect(`${name}さん、ログインしました！`);
+        } else {
+            showToastDirect('ログイン情報が正しくありません', true);
         }
     }
 
-    // 投票者アカウント作成
+    // 投票者アカウント作成（Firebase版）
     async function addVoterAccount() {
         const name = document.getElementById('voter-name').value.trim();
         const password = document.getElementById('voter-pass').value;
         if (!name || !password) return;
-        try {
-            const res = await fetch('/api/voters', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, password })
-            });
-            if (res.ok) {
+        const db = window.db;
+        if (!db) { showToastDirect('データベースに接続できません', true); return; }
+        const snapshot = await db.ref('voters').once('value');
+        const existing = snapshot.val() || {};
+        const exists = Object.values(existing).some(v => v.name.toLowerCase() === name.toLowerCase());
+        if (exists) { showToastDirect('すでに同じ名前のアカウントが存在します', true); return; }
+        db.ref('voters').push({ name, password, balance: 10000 }, err => {
+            if (err) { showToastDirect('エラーが発生しました', true); }
+            else {
                 document.getElementById('voter-name').value = '';
                 document.getElementById('voter-pass').value = '';
                 showToastDirect('投票者アカウントを作成しました！');
-                if (typeof window._loadVoters === 'function') {
-                    window._loadVoters();
-                }
-            } else {
-                const d = await res.json();
-                showToastDirect(d.error || 'エラーが発生しました', true);
             }
-        } catch(e) {
-            showToastDirect('サーバーに接続できません', true);
-        }
+        });
     }
 
-    // 選手追加
-    async function addPlayer() {
+    // 選手追加（Firebase版）
+    function addPlayer() {
         const name = document.getElementById('player-name').value.trim();
         if (!name) return;
-        try {
-            const res = await fetch('/api/players', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
-            });
-            if (res.ok) {
+        const db = window.db;
+        if (!db) { showToastDirect('データベースに接続できません', true); return; }
+        db.ref('players').push({ name }, err => {
+            if (err) { showToastDirect('エラーが発生しました', true); }
+            else {
                 document.getElementById('player-name').value = '';
-                showToastDirect('選手を追加しました！');
-                if (typeof window._loadPlayers === 'function') {
-                    window._loadPlayers();
-                }
-            } else {
-                const d = await res.json();
-                showToastDirect(d.error || 'エラーが発生しました', true);
+                showToastDirect('選手を登録しました！');
             }
-        } catch(e) {
-            showToastDirect('サーバーに接続できません', true);
-        }
+        });
     }
 
-    // 管理者パスワード変更
-    async function doChangePassword() {
+    // 管理者パスワード変更（Firebase版）
+    function doChangePassword() {
         const pw = document.getElementById('new-admin-password').value;
         if (!pw) return;
-        try {
-            const res = await fetch('/api/admin/password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: pw })
-            });
-            if (res.ok) {
+        const db = window.db;
+        if (!db) { showToastDirect('データベースに接続できません', true); return; }
+        db.ref('settings/admin_password').set(pw, err => {
+            if (err) { showToastDirect('エラーが発生しました', true); }
+            else {
                 document.getElementById('new-admin-password').value = '';
                 showToastDirect('パスワードを変更しました！');
-            } else {
-                const d = await res.json();
-                showToastDirect(d.error || 'エラーが発生しました', true);
             }
-        } catch(e) {
-            showToastDirect('サーバーに接続できません', true);
-        }
+        });
     }
 
     // 管理者ページ 過去のレース結果・払い戻し一覧の取得
