@@ -685,6 +685,7 @@ function initApp() {
                     }
                     renderCartItems();
                     updateOddsValues();
+                }
                 } catch (err) {
                     window.onerror(err.message, 'app.js (fetchActiveRace)', err.lineNumber || 0, 0, err);
                     console.error('fetchActiveRace Error:', err);
