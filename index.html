@@ -743,54 +743,6 @@
                         </div>
                     </div>
 
-                                    <option value="10">10R</option>
-                                </select>
-                                <button id="btn-delete-selected-result" class="glass-btn danger" style="padding: 0.3rem 0.8rem; font-size: 0.85rem; margin-left: 0.5rem; display: none;">このレースを削除</button>
-                            </div>
-                        </div>
-                        <p class="text-muted mt-2" style="font-size: 0.9rem;">
-                            確定したレースの着順結果、最終オッズ、および的中した投票者の払い戻し金額一覧を確認できます。
-                        </p>
-                        
-                        <div id="admin-results-content" class="mt-4" style="display: none; animation: fadeIn 0.3s ease;">
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
-                                <!-- Left side: Race Results -->
-                                <div class="glass-card" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 12px;">
-                                    <h4 style="margin-top:0; color:var(--primary);">🏁 確定着順</h4>
-                                    <div id="admin-results-ranking-list" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
-                                        <!-- Loaded dynamically -->
-                                    </div>
-                                    <div style="margin-top: 1.5rem; border-top: 1px dashed var(--glass-border); padding-top: 1rem;">
-                                        <span style="font-weight: bold;">賭け式: <span id="admin-results-bet-type" class="neon-text">---</span></span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Right side: Winning Voters Payouts -->
-                                <div class="glass-card" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 12px;">
-                                    <h4 style="margin-top:0; color:var(--success);">💰 的中した投票者・払戻金一覧</h4>
-                                    <div class="overflow-auto" style="margin-top: 1rem;">
-                                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
-                                            <thead>
-                                                <tr style="border-bottom: 1px solid var(--glass-border);">
-                                                    <th style="padding: 0.5rem;">投票者</th>
-                                                    <th style="padding: 0.5rem;">買い目</th>
-                                                    <th style="padding: 0.5rem;">賭け金</th>
-                                                    <th style="padding: 0.5rem; color: var(--warning);">オッズ</th>
-                                                    <th style="padding: 0.5rem; color: var(--success);">払戻額</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="admin-results-winners-tbody">
-                                                <!-- Loaded dynamically -->
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="admin-results-empty" class="text-center text-muted" style="padding: 2rem; background: rgba(0,0,0,0.15); border-radius: 12px; border: 1px dashed var(--glass-border); margin-top: 1rem;">
-                            このレース番号の確定結果はまだありません
-                        </div>
-                    </div>
 
                     <div class="glass-card mt-4">
                         <h3>6. 管理者設定</h3>
@@ -866,6 +818,6 @@
     </div>
 
     <div id="toast" class="toast">Action completed!</div>
-    <script src="static/app.js?v=13"></script>
+    <script src="static/app.js?v=14"></script>
 </body>
 </html>
