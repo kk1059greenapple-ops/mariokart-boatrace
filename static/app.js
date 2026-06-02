@@ -160,6 +160,8 @@ function initApp() {
                 localStorage.removeItem('currentVoter');
                 document.getElementById('voter-auth-container').style.display = 'block';
                 document.getElementById('voter-dashboard').style.display = 'none';
+                votingCart = [];
+                renderCartItems();
             }
         };
 
@@ -1185,28 +1187,24 @@ function initApp() {
 
                     let detailHtml = '';
                     if (vVotes.length > 0) {
-                        if (reveal) {
-                            detailHtml = `<table class="data-table" style="margin-top:0.5rem; width:100%;">
-                                <thead>
-                                    <tr>
-                                        <th>賭け式</th>
-                                        <th>買い目</th>
-                                        <th>金額</th>
-                                        <th>想定オッズ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>` +
-                                    vVotes.map(vote => `<tr>
-                                        <td>${betTypeNames[vote.bet_type]}</td>
-                                        <td class="neon-text">${vote.display_pattern}</td>
-                                        <td>${vote.amount.toLocaleString()} G</td>
-                                        <td style="color:var(--warning); font-weight:bold;">${vote.odds.toFixed(1)}x</td>
-                                    </tr>`).join('') +
-                                `</tbody>
-                            </table>`;
-                        } else {
-                            detailHtml = `<div style="margin-top:0.5rem; font-size:0.9rem; color:var(--text-muted); font-style:italic;">🙈 投票内容非公開（投票数: ${vVotes.length} 件）</div>`;
-                        }
+                        detailHtml = `<table class="data-table" style="margin-top:0.5rem; width:100%;">
+                            <thead>
+                                <tr>
+                                    <th>賭け式</th>
+                                    <th>買い目</th>
+                                    <th>金額</th>
+                                    <th>想定オッズ</th>
+                                </tr>
+                            </thead>
+                            <tbody>` +
+                                vVotes.map(vote => `<tr>
+                                    <td>${betTypeNames[vote.bet_type]}</td>
+                                    <td class="neon-text">${vote.display_pattern}</td>
+                                    <td>${vote.amount.toLocaleString()} G</td>
+                                    <td style="color:var(--warning); font-weight:bold;">${vote.odds.toFixed(1)}x</td>
+                                </tr>`).join('') +
+                            `</tbody>
+                        </table>`;
                     } else {
                         detailHtml = `<div style="margin-top:0.5rem; font-size:0.9rem; color:var(--text-muted);">まだ投票していません</div>`;
                     }
