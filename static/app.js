@@ -505,14 +505,12 @@ function initApp() {
                 const data = snapshot.val() || {};
                 const activeNums = [];
                 Object.keys(data).forEach(num => {
-                    if (data[num].active) {
-                        activeNums.push(parseInt(num));
-                    }
+                    activeNums.push(parseInt(num));
                 });
                 
                 if (adminActiveRacesList) {
                     if (activeNums.length === 0) {
-                        adminActiveRacesList.innerHTML = `<span style="color: var(--text-muted);">現在稼働中のレースはありません</span>`;
+                        adminActiveRacesList.innerHTML = `<span style="color: var(--text-muted);">作成済みのレースはありません</span>`;
                     } else {
                         adminActiveRacesList.innerHTML = activeNums.sort((a,b)=>a-b).map(num => {
                             const race = data[num];
