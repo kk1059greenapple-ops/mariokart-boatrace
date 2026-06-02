@@ -114,6 +114,7 @@ function initApp() {
         let votingCart = [];
         let isAdminAuthenticated = false;
         let currentVoter = null;
+        let lastRenderedRaceKey = null;
         
         // データベースが作成されたばかりの空っぽの状態なら、初期データを自動登録します
         db.ref('settings/admin_password').once('value', snapshot => {
