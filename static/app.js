@@ -1619,28 +1619,7 @@ function initApp() {
 
             const RETURN_RATE = 0.90;
             const addedCarryover = currentCarryoverPool * 0.90;
-            
-            let minOdds = Infinity;
-            let maxOdds = 0;
-
-            validPatterns.forEach(pids => {
-                const patternStr = JSON.stringify(pids);
-                const pool = currentPools[patternStr] || 0.0;
-                let oddsVal = 0.0;
-
-                if (currentTotalBets > 0 && pool > 0) {
-                    oddsVal = ((currentTotalBets * RETURN_RATE) + addedCarryover) / pool;
-                } else {
-                    if (allowedBetType === 'two_teams') {
-                        oddsVal = addedCarryover > 0 ? ((100.0 * RETURN_RATE) + addedCarryover) / 100.0 : 1.8;
-                    } else {
-                        oddsVal = ((100.0 * RETURN_RATE) + addedCarryover) / 100.0;
-                    }
-                }
-                const roundedOdds = Math.round(oddsVal * 10) / 10;
-                if (roundedOdds < minOdds) minOdds = roundedOdds;
-                if (roundedOdds > maxOdds) maxOdds = roundedOdds;
-            });
+            const pot = (currentTotalBets * RETURN_RATE) + addedCarryover;
 
             let displayStr = "";
             if (validPatterns.length > 1) {
@@ -1666,13 +1645,7 @@ function initApp() {
                 if (isOddsHidden) {
                     valDisplay.textContent = "🔒";
                 } else {
-                    if (validPatterns.length > 1 && minOdds !== maxOdds) {
-                        const minStr = minOdds < 1.0 ? '-' : minOdds.toFixed(1) + 'x';
-                        const maxStr = maxOdds < 1.0 ? '-' : maxOdds.toFixed(1) + 'x';
-                        valDisplay.textContent = `${minStr} ~ ${maxStr}`;
-                    } else {
-                        valDisplay.textContent = minOdds < 1.0 ? '-' : minOdds.toFixed(1) + 'x';
-                    }
+                    valDisplay.textContent = `${Math.floor(pot).toLocaleString()} G`;
                 }
             }
         }
@@ -1785,7 +1758,7 @@ function initApp() {
                 const roundedOdds = Math.round(oddsVal * 10) / 10;
                 const expectedPayout = Math.floor(item.amount * roundedOdds);
 
-                const displayOdds = isOddsHidden ? "非表示" : `${roundedOdds.toFixed(1)}x`;
+                const displayOdds = isOddsHidden ? "非表示" : `${Math.floor((currentTotalBets * 0.90) + addedCarryover).toLocaleString()} G`;
                 const displayPayout = isOddsHidden ? "非表示" : `${expectedPayout.toLocaleString()} G`;
 
                 return `<tr class="cart-item-row">
