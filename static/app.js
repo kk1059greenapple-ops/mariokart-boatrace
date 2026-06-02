@@ -1669,9 +1669,11 @@ function initApp() {
                     valDisplay.textContent = "🔒";
                 } else {
                     if (validPatterns.length > 1 && minOdds !== maxOdds) {
-                        valDisplay.textContent = `${minOdds.toFixed(1)}x ~ ${maxOdds.toFixed(1)}x`;
+                        const minStr = minOdds < 1.0 ? '-' : minOdds.toFixed(1) + 'x';
+                        const maxStr = maxOdds < 1.0 ? '-' : maxOdds.toFixed(1) + 'x';
+                        valDisplay.textContent = `${minStr} ~ ${maxStr}`;
                     } else {
-                        valDisplay.textContent = `${minOdds.toFixed(1)}x`;
+                        valDisplay.textContent = minOdds < 1.0 ? '-' : minOdds.toFixed(1) + 'x';
                     }
                 }
             }
@@ -1738,18 +1740,16 @@ function initApp() {
         // クイック金額入力
         document.querySelectorAll('.quick-amt-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const addVal = parseInt(btn.getAttribute('data-val'));
-                const curVal = parseInt(betAmountInput.value) || 0;
-                betAmountInput.value = curVal + addVal;
+                const rawVal = btn.getAttribute('data-value');
+                if (rawVal === 'clear') {
+                    betAmountInput.value = '';
+                } else {
+                    const addVal = parseInt(rawVal);
+                    const curVal = parseInt(betAmountInput.value) || 0;
+                    betAmountInput.value = curVal + addVal;
+                }
             });
         });
-
-        const btnClearAmt = document.getElementById('btn-clear-amt');
-        if (btnClearAmt) {
-            btnClearAmt.addEventListener('click', () => {
-                betAmountInput.value = 100;
-            });
-        }
 
         function renderCartItems() {
             const tbody = document.getElementById('cart-items-tbody');
