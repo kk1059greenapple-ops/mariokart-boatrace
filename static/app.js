@@ -608,16 +608,16 @@ function initApp() {
                 raceNum = parseInt(voterRaceNumberSelect.value);
             }
 
-            // キャリーオーバーの取得も含めてFirebaseから購読
             db.ref('/').on('value', snapshot => {
-                const data = snapshot.val() || {};
-                const races = data.races || {};
-                const race = races[raceNum] || null;
-                const dbVoters = data.voters || {};
-                const dbVotes = data.votes || {};
+                try {
+                    const data = snapshot.val() || {};
+                    const races = data.races || {};
+                    const race = races[raceNum] || null;
+                    const dbVoters = data.voters || {};
+                    const dbVotes = data.votes || {};
 
-                // 投票者リストのローカルキャッシュ更新
-                voters = Object.keys(dbVoters).map(k => ({ id: k, ...dbVoters[k] }));
+                    // 投票者リストのローカルキャッシュ更新
+                    voters = Object.keys(dbVoters).map(k => ({ id: k, ...dbVoters[k] }));
 
                 // ログイン中の投票者残高をリアルタイム同期
                 if (currentVoter) {
@@ -685,6 +685,9 @@ function initApp() {
                     }
                     renderCartItems();
                     updateOddsValues();
+                } catch (err) {
+                    window.onerror(err.message, 'app.js (fetchActiveRace)', err.lineNumber || 0, 0, err);
+                    console.error('fetchActiveRace Error:', err);
                 }
             });
         }
